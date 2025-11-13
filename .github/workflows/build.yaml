@@ -6,41 +6,34 @@ on:
   workflow_dispatch: {}
 
 permissions:
-  contents: read
-  id-token: write   # for OIDC-based releases without storing PATs
-
+  contents: write
+  packages: read
 jobs:
   build:
     runs-on: ubuntu-latest
-
-    permissions:
-      contents: write     # needed only for the release step
-      actions: read       # restrict everything else
-
     steps:
-      - name: Checkout (pinned)
+      - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Set up Typst (pinned SHA)
-        uses: lvignoli/typst-action@main
+      - name: Install Typst
+        uses: typst-community/setup-typst@v4.2.0
         with:
-          source_file: main.typ
-
-      - name: Upload artifact
+          typst-version: 0.14.0
+          cache-dependency-path: requirements.typ
+      - name: Compile Typst files
+        run: |
+          typst compile main.typ main.pdf
+      - name: Upload PDF file
         uses: actions/upload-artifact@v4
         with:
           name: PDF
-          path: main.pdf
-          if-no-files-found: error
-
+          path: "*.pdf"
       - name: Get current date
         id: date
-        run: echo "DATE=$(date +%Y-%m-%d-%H-%M)" >> "$GITHUB_ENV"
-
+        run: echo "DATE=$(date +%Y-%m-%d-%H:%M)" >> $GITHUB_ENV
       - name: Release
+        uses: softprops/action-gh-release@v1
         if: github.ref_type == 'tag'
-        uses: softprops/action-gh-release@v2
         with:
           name: "${{ github.ref_name }} — ${{ env.DATE }}"
-          files: main.pdf
-
+          files: |
+            main.pdf
