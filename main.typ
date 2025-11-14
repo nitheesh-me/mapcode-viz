@@ -4,31 +4,33 @@
   title: "Mapcode : Recursion Modeling",
   authors: (
     (name: "Nitheesh Chandra", email: "nitheeshchandra.y@research.iiit.ac.in", affiliation: "TA, PoPL"),
-
     (name: "Contributors from PoPL 2025, IIITH", email: "", affiliation: "Students, PoPL"),
   ),
   abstract: [
     Recursion modeling in the `mapcode` framework.
   ],
   keywords: ("Mapcode", "Recursion", "Programming"),
-  date: datetime.today().display()
+  date: datetime.today().display(),
 )
 
 
 #import "lib/style.typ": *
 
-#set math.equation(numbering:none)
+#set math.equation(numbering: none)
 
 = Notations and Conventions
 
 A vector is (zero-)indexed as follows that has size $n+1$:
-$ vec(x_0, dots.v, x_n,
-   delim: "["
+$
+  vec(
+    x_0, dots.v, x_n,
+    delim: "["
   )_(n+1)
 $
 
 A matrix is also (zero-)indexed as follows that has size $m times n$:
-$ mat(
+$
+  mat(
     delim: "[",
     x_(0,0), x_(0,1), dots, x_(0,n-1);
     x_(1,0), x_(1,1), dots, x_(1,n-1);
@@ -52,3 +54,7 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/LongestCommonSubsequence.typ"
 #pagebreak()
 #include "algorithms/leetcode/P2_add-two-numbers.typ"
+#pagebreak()
+#include "algorithms/gcd-euclid.typ"
+#pagebreak()
+#include "algorithms/mergesort.typ"

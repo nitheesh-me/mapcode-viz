@@ -3,5 +3,5 @@
 
 #set cite(style: "chicago-author-date")
 #show link: underline
-#let bot = text(stroke:maroon)[$bot$]
+#let bot = text(stroke: maroon)[$bot$]
 #let mpi = $pi$
