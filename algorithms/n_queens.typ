@@ -40,7 +40,7 @@ $
 
 #let inst = 4;
 #figure(
-  caption: [N-Queens computation using mapcode for $n = #inst$. The state vector $X[k]$ shows thevalid partial solutions using $k$ queens (in rows $0..k-1$).],
+  caption: [N-Queens computation using mapcode for $n = #inst$. The state vector $X[k]$ shows the valid partial solutions using $k$ queens (in rows $0..k-1$).],
 $
 #{
   let rho = (inst) => {
