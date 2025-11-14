@@ -133,9 +133,9 @@ $#{
     rho,F((inst_S, inst_T)), pi((inst_S, inst_T)),
     I_h: (i) => [$S=#inst_S$, $T=#inst_T $],
     X_h: x_h,
-    pi_name: [$pi_(S,T) (x) & = x_(|S|,|T|)
-$],
+    F_name: [$F_(S,T)$],
+    pi_name: [$mpi_(S,T)$],
     group-size: calc.min(3, inst_m),
-    cell-size: 60mm, scale-fig: 75%
+    cell-size: 50mm, scale-fig: 85%
   )((inst_m, inst_n))
 }$)

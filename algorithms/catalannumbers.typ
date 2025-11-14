@@ -99,7 +99,7 @@ $#{
   mapcode-viz(
     rho, F, pi(inst),
     X_h: X_h,
-    pi_name: [$pi_#inst$],
+    pi_name: [$mpi_#inst$],
     group-size: calc.min(6, inst),
     cell-size: 15mm, scale-fig: 95%
   )(inst)
