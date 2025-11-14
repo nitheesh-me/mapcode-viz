@@ -30,7 +30,10 @@ Examples:
 _primitives_: `sum`($+$), `min`(min)
 
 $
-I = S times T quad "where" S, T in Sigma^* quad quad quad
+I = S times T quad "where" S, T in Sigma^* quad quad "(strings over an alphabet Sigma)"
+$
+
+$
 X_(S,T) & = [0..|S|] times [0..|T|] -> NN_bot quad quad quad
 A = NN\
 rho(S,T) & = { (i,j) -> bot | i in {0 dots |S|}, j in {0 dots |T|}} \
@@ -49,7 +52,7 @@ $
 #let inst_n = inst_T.len();
 
 #figure(
-  caption: [Edit Distance computation using mapcode for $S = "#inst_S"$ and $T = "#inst_T"$; dynamic-programming table visualization.],
+  caption: [Edit Distance computation using mapcode for $S = "horse"$ and $T = "ros"$; dynamic-programming table visualization.],
 $#{
   let rho = ((inst_m, inst_n)) => {
     let x = ()
@@ -128,8 +131,10 @@ $#{
 
   mapcode-viz(
     rho,F((inst_S, inst_T)), pi((inst_S, inst_T)),
+    I_h: (i) => [$S=#inst_S$, $T=#inst_T $],
     X_h: x_h,
-    pi_name: [$mpi ((#inst_m, #inst_n))$],
+    pi_name: [$pi_(S,T) (x) & = x_(|S|,|T|)
+$],
     group-size: calc.min(3, inst_m),
     cell-size: 60mm, scale-fig: 75%
   )((inst_m, inst_n))
