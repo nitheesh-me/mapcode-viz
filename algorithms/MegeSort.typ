@@ -14,10 +14,10 @@ m(a) := cases(
 $   
 
 Example:
-- C(5, 2) = 10
-- C(5, 0) = 1
-- C(5, 5) = 1
-- C(10, 3) = 120
+- m(5, 2, 4, 2, 8) = (2, 2, 4, 5, 8)
+- m(5, 0) = (0, 5)
+- m(9, 6, 5, 3, 1, 8, 7, 2, 4) = (1, 2, 3, 4, 5, 6, 7, 8, 9)
+
 /* ddc */
 *As mapcode:*
 
@@ -45,4 +45,9 @@ F(x("arr")) & = cases(
   )\
 pi_(a) (x) & = x(a)
 $
+
+
+#link("https://github.com/mayank3135432/recreational-programming-stuff/blob/main/merge_sort.ipynb")[
+  Link to Python Implementation (See cell 11)
+]
 
