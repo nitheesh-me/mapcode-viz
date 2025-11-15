@@ -55,6 +55,3 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #pagebreak()
 #include "algorithms/digit_reversal.typ"
 #pagebreak()
-#include "algorithms/exp_squaring.typ"
-#pagebreak()
-
