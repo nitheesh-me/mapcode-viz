@@ -36,7 +36,7 @@ $
 
 
 
-#let inst_dimvecs  = (13, 5, 89, 3, 34);
+#let inst_dimvecs  = (10, 20, 30, 40, 50);
 #let inst_dm = inst_dimvecs.len();
 
 
@@ -55,37 +55,26 @@ $#{
     x
   }
 
-  let safe_operation(a, b, c, op) = {
-    if a == none or b == none or c == none {
-      none
-    } else {
-      op(a, b, c)
-    }
-  }
-
   let F_i(d) = (x) => ((i, j)) => {
     if i == j {
       0
     } else {
-      let min_val = none
       let mut = none
+      let min_val = none
       for k in range(i, j) {
-        let current = safe_operation(
-          x.at(i).at(k),
-          x.at(k+1).at(j), 
-          d.at(i) * d.at(j+1) * d.at(k+1),
-          (a, b, c) => a + b + c
-        )
+        let term1 = x.at(i).at(k)
+        let term2 = x.at(k+1).at(j)
+        let product = d.at(i) * d.at(j+1) * d.at(k+1)
         
-        if current != none {
-          if min_val == none or current < min_val {
+        // If any component is none, the result is none
+        if term1 == none or term2 == none {
+          // Continue to check other k values, but min_val becomes none
+          min_val = none
+        } else if min_val != none {
+          let current = term1 + term2 + product
+          if current < min_val {
             min_val = current
           }
-        } else {
-          // If we want to propagate none immediately:
-          // return none
-          // If we want to check all k but return none if any is none:
-          min_val = none
         }
       }
       min_val
@@ -103,7 +92,7 @@ $#{
   // (2, 3, 4, 5), (3, 4, 5, 6), 5)
   let I_h(inst_dimvecs) = {
     [
-      $d: vec(..#inst_dimvecs.map(i => [#i]), delim: "[")$
+      $d: vec(..#inst_dimvecs.map(i => [#i]), delim: "[")_(#inst_dimvecs.len())$
     ]
   }
 
@@ -120,7 +109,7 @@ $#{
     for w in range(0, x.at(0).len()) {
       header_cells.push(rect(fill: orange.transparentize(70%), inset: 14pt)[$#w$])
     }
-    rows.push(grid(columns: header_cells.len() * (30pt,), rows: 14pt, align: center + horizon, ..header_cells))
+    rows.push(grid(columns: header_cells.len() * (14pt,), rows: 14pt, align: center + horizon, ..header_cells))
 
     for i in range(0, x.len()) {
       let row = ()
