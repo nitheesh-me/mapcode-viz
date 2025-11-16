@@ -47,6 +47,10 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #pagebreak()
 #include "algorithms/fibonacci.typ"
 #pagebreak()
+#include "algorithms/parity.typ"
+#pagebreak()
+#include "algorithms/DigitReversal.typ"
+#pagebreak()
 #include "algorithms/BinomialCoefficients.typ"
 #pagebreak()
 #include "algorithms/LongestCommonSubsequence.typ"
