@@ -52,3 +52,8 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/LongestCommonSubsequence.typ"
 #pagebreak()
 #include "algorithms/leetcode/P2_add-two-numbers.typ"
+#pagebreak()
+#include "algorithms/decode_ways.typ"
+#pagebreak()
+#include "algorithms/equal_sum_subset.typ"
+#pagebreak()
