@@ -48,6 +48,10 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/fibonacci.typ"
 #pagebreak()
 #include "algorithms/BinomialCoefficients.typ"
+#include "algorithms/hanoi.typ"
+#pagebreak()
+#include "algorithms/coinChange.typ"
+#pagebreak()
 #pagebreak()
 #include "algorithms/LongestCommonSubsequence.typ"
 #pagebreak()
