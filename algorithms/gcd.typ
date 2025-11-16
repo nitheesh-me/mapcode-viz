@@ -32,7 +32,7 @@ F(x) & = cases(
   "a" & "if " "b" = 0,
   x_("b", "a" " mod " "b") & "otherwise"
 )\
-pi(x) & = "last computed value"
+pi(x) & = x_((a,b)) " where " b=0
 $
 
 #let inst_a = 48;
