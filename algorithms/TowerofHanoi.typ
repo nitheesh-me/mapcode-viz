@@ -4,190 +4,184 @@
 == Tower of Hanoi
 #set math.equation(numbering: none)
 
-Solve the Tower of Hanoi puzzle with $n$ disks, moving all disks from source rod to destination rod using auxiliary rod, following the rules:
-1. Only one disk can be moved at a time
-2. Each move consists of taking the upper disk from one stack and placing it on top of another stack
-3. No larger disk may be placed on top of a smaller disk
-
-Formal definition:
-$
-  "hanoi": (n, "src", "dst", "aux") -> "sequence of moves"
-$
-where $n$ is the number of disks, and the function returns the sequence of moves to transfer $n$ disks.
-
+Solve the Tower of Hanoi puzzle with $n$ disks.
 Algorithm:
-1. Move $n-1$ disks from source to auxiliary, using destination as the auxiliary rod
-2. Move the largest disk from source to destination
-3. Move $n-1$ disks from auxiliary to destination, using source as the auxiliary rod
+1. Move $n-1$ disks from source to auxiliary.
+2. Move the largest disk from source to destination.
+3. Move $n-1$ disks from auxiliary to destination.
 
-Examples:
-- $"hanoi"(0, "A", "C", "B") -> []$ (no moves needed)
-- $"hanoi"(1, "A", "C", "B") -> [(A, C)]$ (direct move)
-- $"hanoi"(2, "A", "C", "B") -> [(A, B), (A, C), (B, C)]$
-
-*As mapcode:*
-
-_primitives_: `move` transfers a disk from one rod to another, `concat` combines move sequences.
-
-For Tower of Hanoi, we model the problem using a DP table where each cell corresponds to a subproblem (k disks with specific rod configuration). The state `X` is a 2D table where `X[k][p]` stores the solution for `hanoi(k, src, dst, aux)` in permutation `p`.
+*As mapcode (Dynamic Programming Model):*
+We model the state `X` as a 2D table `X[k][p]`, where $k$ is the number of disks and $p$ is an index for one of the 6 rod permutations.
+$  X[k, p] = "solution for hanoi(k, ...)" $
 
 $
-  I = n:NN quad quad quad X & = [0..n] times [0..5] -> [text("Move")]_bot quad quad quad A = [text("Move")] \
-                          rho(n) & = {(k,p) -> bot | k in [0..n], p in [0..5]} \
-                              F(x) & = cases(
-                                         () & "if " k = 0, "base case"\\
-                                         "concat"(x_{k-1, p_1}, [("src", "dst")], x_{k-1, p_2}) & "if " k > 0 " and dependencies solved"\\
-                                         bot & "otherwise"
-                                       ) \
-                               pi(x) & = x_{n,0}
+  I = n:NN \
+  X = [0..n] times [0..5] -> [text("Move")]_bot \
+  A = [text("Move")] \
+  rho(n) & = { (k,p) -> bot | k in {0..n}, p in {0..5}} \
+  F(x)_(k,p) & = cases(
+      [] & "if " k = 0,
+      x[k-1, p_1] + [(s,d)] + x[k-1, p_2] & "if deps " x[k-1, ..] != bot,
+      bot & "otherwise"
+    ) \
+  pi(n)(x) & = x[n, 0] // p=0 is the main problem "A->C (B)"
 $
 
-// Example showing the solution for 2 disks
-#let example_moves = (("A", "B"), ("A", "C"), ("B", "C"))
-#let inst_n = 2;
-#h(3em)
-For 2 disks from A to C using B as auxiliary, the moves are: $A -> B$, $A -> C$, $B -> C$
+// --- 1. Global Definitions (Helper Data) ---
 
+// Define all 6 permutations (src, dst, aux)
+#let perms = (
+  (src: "A", dst: "C", aux: "B"), // p=0 (Main Problem)
+  (src: "A", dst: "B", aux: "C"), // p=1
+  (src: "B", dst: "C", aux: "A"), // p=2
+  (src: "B", dst: "A", aux: "C"), // p=3
+  (src: "C", dst: "B", aux: "A"), // p=4
+  (src: "C", dst: "A", aux: "B")  // p=5
+)
+
+// Pre-calculate the dependency indices for each permutation `p`
+// dep_logic[p] = (p_dep1, p_dep2)
+// Example: p=0 (A->C, B) depends on:
+// 1. h(k-1, A, B, C) -> p=1
+// 2. h(k-1, B, C, A) -> p=2
+#let dep_logic = (
+  (1, 2), // p=0
+  (0, 5), // p=1
+  (3, 0), // p=2
+  (2, 4), // p=3
+  (5, 2), // p=4
+  (4, 3)  // p=5
+)
+
+#let inst_n = 2; // Example for 2 disks
+
+// --- 2. Mapcode Functions (rho, F, pi) ---
+
+// rho: Initialize (n+1) x 6 table with `none`
+#let rho = n => {
+  let x = ()
+  for k in range(0, n + 1) {
+    let row = ()
+    for p in range(6) {
+      row.push(none) // bot
+    }
+    x.push(row)
+  }
+  x
+}
+
+// F_i: Logic for a single cell X[k][p]
+#let F_i = x => ((k_idx, p_idx)) => {
+  // Base case: 0 disks requires no moves
+  if k_idx == 0 {
+    ()
+  } else {
+    // 1. Get info for this permutation
+    let p_info = perms.at(p_idx)
+    let move_mid = ( (p_info.src, p_info.dst), )
+    
+    // 2. Find the dependency indices from our pre-calculated map
+    let (p1_idx, p2_idx) = dep_logic.at(p_idx)
+
+    // 3. Look up solutions for sub-problems in the *previous* state `x`
+    let moves1 = x.at(k_idx - 1).at(p1_idx)
+    let moves2 = x.at(k_idx - 1).at(p2_idx)
+
+    // 4. Check if dependencies are met (i.e., not none)
+    if moves1 != none and moves2 != none {
+      // 5. Dependencies met. Compute the result using array concatenation.
+      moves1 + move_mid + moves2
+    } else {
+      // Dependencies not met. Stay ⊥ (none).
+      none
+    }
+  }
+}
+
+// F: Applies F_i to the entire 2D state array
+#let F = map_tensor(F_i, dim: 2)
+
+// pi: Extract final result (solution for n disks, main permutation p=0)
+#let pi = n => x => x.at(n).at(0)
+
+// --- 3. Visualization Helpers (X_h, A_h) ---
+
+// X_h: Renders the state X
+#let X_h = (x, diff_mask: none) => {
+  // Show the status of the main problem (p=0) for each k
+  let cells = ()
+  for k in range(0, x.len()) {
+    let row = x.at(k)
+    let val = row.at(0) // Get the p=0 (main) permutation
+    
+    let cell_val_str = if val != none and type(val) == array {
+      let moves = val
+      if moves.len() > 0 {
+        let move_str = moves.slice(0, calc.min(moves.len(), 3)).map(m => {
+          if type(m) == array and m.len() >= 2 {
+            str(m.at(0)) + "->" + str(m.at(1))
+          } else { "?" }
+        }).join(", ")
+        if moves.len() > 3 { move_str + "..." } else { move_str }
+      } else { "()" } // Empty moves
+    } else {
+      [$bot$] // This can be math, it's just content
+    }
+
+    let cell_changed = false
+    if diff_mask != none and k < diff_mask.len() {
+      let row_mask = diff_mask.at(k)
+      if row_mask != none and type(row_mask) == array and 0 < row_mask.len() {
+        cell_changed = row_mask.at(0)
+      }
+    }
+
+    // This creates content, which can include math
+    let cell_content = [$k=#k: #cell_val_str$]
+    
+    if cell_changed {
+      // CORRECTED: Added %
+      cells.push(rect(fill: yellow.transparentize(70%), inset: 2pt)[#cell_content])
+    } else {
+      cells.push(cell_content)
+    }
+  }
+  
+  // Return a `table` (a content-mode function), not `$mat`
+  table(
+    columns: 1,
+    align: center,
+    ..cells
+  )
+}
+
+
+// A_h: Renders the final answer
+#let A_h = a => {
+  if a != none and type(a) == array {
+    let moves_items = a.map(m => "(" + str(m.at(0)) + "," + str(m.at(1)) + ")")
+    let moves_str = moves_items.join(", ")
+    [$(#moves_str)$]
+  } else {
+    [$bot$]
+  }
+}
+
+// --- 4. Visualization Execution ---
 #figure(
   caption: [Tower of Hanoi computation using mapcode for $#inst_n$ disks],
   $
     #{
-      // Map rod permutations to indices:
-      // 0: (A,B,C), 1: (A,C,B), 2: (B,A,C), 3: (B,C,A), 4: (C,A,B), 5: (C,B,A)
-
-      // Initialize: 2D table with all undefined values
-      let rho = n => {
-        let x = ()
-        for k in range(0, n + 1) {
-          let row = ()
-          for p in range(0, 6) {
-            row.push(none)  // bot
-          }
-          x.push(row)
-        }
-        x  // (n+1) x 6 table
-      }
-
-      // Function to compute value at a specific index (k, p) based on previous state
-      let F_i = (prev_state) => ((k_idx, p_idx)) => {
-        // Base case: 0 disks requires no moves
-        if k_idx == 0 {
-          ()
-        } else {
-          // Map permutation index to rod configuration
-          // Permutation 0: (src, dst, aux) = (A, C, B) - main case of interest
-          // Permutation 1: (src, dst, aux) = (A, B, C)
-          // Permutation 2: (src, dst, aux) = (B, C, A)
-          // Permutation 3: (src, dst, aux) = (B, A, C)
-          // Permutation 4: (src, dst, aux) = (C, B, A)
-          // Permutation 5: (src, dst, aux) = (C, A, B)
-          let rods = if p_idx == 0 { ("A", "C", "B") }  // hanoi(k, A, C, B) - main case
-              else if p_idx == 1 { ("A", "B", "C") }   // hanoi(k, A, B, C)
-              else if p_idx == 2 { ("B", "C", "A") }   // hanoi(k, B, C, A)
-              else if p_idx == 3 { ("B", "A", "C") }   // hanoi(k, B, A, C)
-              else if p_idx == 4 { ("C", "B", "A") }   // hanoi(k, C, B, A)
-              else { ("C", "A", "B") }                 // hanoi(k, C, A, B)
-
-          let (src, dst, aux) = rods
-
-          // For hanoi(k, src, dst, aux), we need:
-          // 1. hanoi(k-1, src, aux, dst) - move k-1 disks from src to aux using dst as aux
-          // 2. hanoi(k-1, aux, dst, src) - move k-1 disks from aux to dst using src as aux
-
-          // Find permutation indices for the dependencies based on the rod configuration
-          // We need to map (src, aux, dst) to p1_idx and (aux, dst, src) to p2_idx
-
-          // Helper function to map (src, dst, aux) to permutation index
-          let get_perm_idx = (s, d, a) => {
-            if s == "A" and d == "C" and a == "B" { 0 }  // (A, C, B)
-            else if s == "A" and d == "B" and a == "C" { 1 }  // (A, B, C)
-            else if s == "B" and d == "C" and a == "A" { 2 }  // (B, C, A)
-            else if s == "B" and d == "A" and a == "C" { 3 }  // (B, A, C)
-            else if s == "C" and d == "B" and a == "A" { 4 }  // (C, B, A)
-            else { 5 }  // (C, A, B)
-          }
-
-          let (src, aux, dst_from_src) = (src, aux, dst)  // First dependency: (src, aux, dst)
-          let (aux2, dst2, src2) = (aux, dst, src)        // Second dependency: (aux, dst, src)
-
-          let p1_idx = get_perm_idx(src, aux, dst)  // hanoi(k-1, src, aux, dst)
-          let p2_idx = get_perm_idx(aux, dst, src)  // hanoi(k-1, aux, dst, src)
-
-          // Get solutions to subproblems from previous state
-          let sub1_moves = if k_idx > 0 { prev_state.at(k_idx - 1).at(p1_idx) } else { none }
-          let sub2_moves = if k_idx > 0 { prev_state.at(k_idx - 1).at(p2_idx) } else { none }
-
-          // Only compute if both dependencies are solved
-          if sub1_moves != none and sub2_moves != none {
-            let result = ()
-            // Add subproblem 1 moves
-            for move in sub1_moves { result.push(move) }
-            // Add the middle move (move largest disk)
-            result.push((src, dst))
-            // Add subproblem 2 moves
-            for move in sub2_moves { result.push(move) }
-            result
-          } else {
-            none  // Dependencies not ready yet
-          }
-        }
-      }
-
-      // Apply F_i to all positions in the table
-      let F = map_tensor(F_i, dim: 2)
-
-      // Extract final result: solution for n disks in the primary configuration
-      let pi = n => x => x.at(n).at(0)
-
-      // Visualize the state (show a flattened version or a specific row)
-      let X_h = (x, diff_mask: none) => {
-        // For simplicity, just show the main diagonal for small cases
-        let cells = ()
-        for k in range(0, calc.min(x.len(), 4)) {
-          let row = x.at(k)
-          let cell_val = if row.at(0) != none and type(row.at(0)) == array {
-            let moves = row.at(0)
-            if moves.len() > 0 {
-              let move_str = moves.slice(0, calc.min(2, moves.len())).map(m => {
-                if type(m) == array and m.len() >= 2 {
-                  str(m.at(0)) + "->" + str(m.at(1))
-                } else {
-                  "?"
-                }
-              }).join(", ")
-              if moves.len() > 2 { move_str + "..." } else { move_str }
-            } else { "()" }  // Empty moves
-          } else {
-            [$bot$]
-          }
-
-          // Check if this cell changed in the diff
-          let cell_changed = false
-          if diff_mask != none and k < diff_mask.len() {
-            let row_mask = diff_mask.at(k)
-            if row_mask != none and type(row_mask) == array and 0 < row_mask.len() {
-              cell_changed = row_mask.at(0)
-            }
-          }
-
-          if cell_changed {
-            cells.push(rect(fill: yellow.transparentize(70%), inset: 2pt)[$#cell_val$])
-          } else {
-            cells.push(cell_val)
-          }
-        }
-        $vec(delim: "[", ..cells)$
-      }
-
       mapcode-viz(
         rho,
         F,
         pi(inst_n),
         X_h: X_h,
+        A_h: A_h,
         pi_name: [$pi$],
-        group-size: 2,
-        cell-size: 10mm,
-        scale-fig: 85%
+        group-size: inst_n + 1, // Show all k steps
+        cell-size: 40mm,
+        scale-fig: 90%
       )(inst_n)
     }
   $,
