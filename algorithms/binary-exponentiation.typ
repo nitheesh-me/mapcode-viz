@@ -94,9 +94,10 @@ $
     x.map(elem => F_i((base, exp))(x)(elem))
   }
 
-  let pi = ((base, exp)) => (x) => get_val(x, exp)
+  let pi_func = ((base, exp)) => (x) => get_val(x, exp)
 
-  let X_h = (x, diff_mask: none) => {
+  let X_h = (base) => (x, diff_mask: none) => {
+    let base_info = [$"base": #base$]
     let cells = x.enumerate().map(((i, p)) => {
       let key = p.at(0)
       let val = p.at(1)
@@ -108,14 +109,14 @@ $
         rect(stroke: none, inset: 2pt)[#cell_content]
       }
     })
-    $vec(delim: "{", ..cells)$
+    stack(dir: ttb, spacing: 0.5em, base_info, $vec(delim: "{", ..cells)$)
   }
 
   mapcode-viz(
-    rho, F((inst_base, inst_exp)), pi((inst_base, inst_exp)),
+    rho, F((inst_base, inst_exp)), pi_func((inst_base, inst_exp)),
     I_h: ((b,e)) => [$#b^#e$],
-    X_h: X_h,
-    pi_name: [$pi ((#inst_base, #inst_exp))$],
+    X_h: X_h(inst_base),
+    pi_name: [$pi((#inst_base, #inst_exp))$],
     group-size: 2,
     cell-size: 30mm,
     scale-fig: 95%

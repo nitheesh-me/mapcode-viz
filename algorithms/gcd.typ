@@ -82,7 +82,7 @@ $
   }
   let F = map_tensor(F_i, dim: 1)
 
-  let pi = (x) => x.at(0)
+  let pi_func = (x) => x.at(0)
 
   let X_h = (x, diff_mask: none) => {
     let cells = x.enumerate().map(((i, x_i)) => {
@@ -99,10 +99,10 @@ $
   }
 
   mapcode-viz(
-    rho, F, pi,
+    rho, F, pi_func,
     I_h: ((a,b)) => [$"gcd"(#a, #b)$],
     X_h: X_h,
-    pi_name: [$pi$],
+    pi_name: [$pi((#inst_a, #inst_b))$],
     group-size: 2,
     cell-size: 40mm,
     scale-fig: 95%
