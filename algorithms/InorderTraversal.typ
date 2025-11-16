@@ -68,7 +68,7 @@ $
     x
   }
 
-  let F_i = (tree) => (x) => (i) => {
+  let F_i = (tree) => (x) => ((i,)) => {
     let node = tree.at(i)
     let val = node.at(0)
     let left_idx = node.at(1)
@@ -136,7 +136,7 @@ $
     X_h: X_h,
     pi_name: [$mpi$],
     group-size: 4,
-    cell-size: 45mm, scale-fig: 85%
+    cell-size: 35mm, scale-fig: 70%
   )(inst_tree)
 }
 $
