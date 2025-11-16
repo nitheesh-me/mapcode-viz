@@ -52,3 +52,7 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/LongestCommonSubsequence.typ"
 #pagebreak()
 #include "algorithms/leetcode/P2_add-two-numbers.typ"
+#include "algorithms/TowerOfHanoi.typ"
+#pagebreak()
+#include "/algorithms/TreeHeight.typ"
+#pagebreak()
