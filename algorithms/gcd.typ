@@ -25,7 +25,8 @@ _primitives_: `mod` (modulo operator)
 $
 I = ("a", "b"): NN times NN \
 X = "Map"(("a","b") -> NN_bot) \
-A = NN\\
+A = NN\ 
+\
 rho("a", "b") & = { ("x","y") -> bot | ("x","y") " is a pair in the GCD chain"}\
 F(x) & = cases(
   "a" & "if " "b" = 0,
