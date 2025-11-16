@@ -51,4 +51,6 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #pagebreak()
 #include "algorithms/LongestCommonSubsequence.typ"
 #pagebreak()
+#include "algorithms/CoinChange.typ"
+#pagebreak()
 #include "algorithms/leetcode/P2_add-two-numbers.typ"
