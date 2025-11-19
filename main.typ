@@ -54,3 +54,7 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/leetcode/P2_add-two-numbers.typ"
 #pagebreak()
 #include "algorithms/catalan.typ"
+#pagebreak()
+#include "algorithms/lis.typ"
+#pagebreak()
+#include "algorithms/toh.typ"
