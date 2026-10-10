@@ -1,139 +1,95 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
-== Subset Sum Problem
+== Subset Sum
+#set math.equation(numbering: none)
 
-Given a set of non-negative integers $S$ and a target sum $T$, determine
-if there is a subset of $S$ whose elements sum to $T$.
+Given a list of non-negative integers $S = (s_1, dots, s_m)$ and a target $T$, decide whether
+some subset of $S$ sums to exactly $T$.
 
-Formal definition:
-Let $D(i, j)$ be true if a sum of $j$ can be made using the first $i$ items.
+Formal definition: let $D(i, j)$ be true iff some subset of the first $i$ items sums to $j$.
+Then
 $
-D(i, j) = cases(
-  "true" & "if " j = 0,
-  "false" & "if " i = 0 " and " j > 0,
-  D(i-1, j) & "if " S_i > j,
-  D(i-1, j) or D(i-1, j - S_i) & "otherwise"
-)
+  D(i, j) = cases(
+    "true" & "if " j = 0,
+    "false" & "if " i = 0 and j > 0,
+    D(i-1, j) & "if " s_i > j,
+    D(i-1, j) or D(i-1, j - s_i) & "otherwise"
+  )
 $
+and the answer is $D(m, T)$.
+
+Examples:
+- $S = (2, 4), T = 5 -> "false"$
+- $S = (3, 5, 8), T = 11 -> "true"$ ($3 + 8$)
+
+*Remark (Partition).* The _partition-equal-subset_ problem asks whether $S$ can be split into
+two parts of equal sum. It reduces to subset sum: answer false if $Sigma = sum_i s_i$ is odd,
+and otherwise run subset sum with target $T = Sigma slash 2$.
 
 *As mapcode:*
 
-_primitives_: `or`
+_primitives_: `or` is strict, i.e. $bot or b = b or bot = bot$; `leq`($<=$).
 
 $
-I &= S:bb(N)^* times T:bb(N) quad quad quad "where" m = |S| \
-X_(m,T) &= [0..m] times [0..T] -> {bot, "true", "false"} \
-A &= {"true", "false"} \
-rho(m,T) &= { (i,j) |-> bot | i in {0 dots m}, j in {0 dots T}} \
-F_S(x_(i,j)) &= cases(
+  I = NN^* times NN quad quad X_(S,T) = [0..m] times [0..T] -> BB_bot quad quad A = BB
+  quad quad "where" m = |S| \
+  rho(S, T) = {(i, j) -> bot | i in [0..m], j in [0..T]} \
+  F_S (x)_(i,j) = cases(
     "true" & "if " j = 0,
-    "false" & "if " i = 0 " and " j > 0,
-    x_(i-1, j) & "if " S_(i-1) > j,
-    x_(i-1, j) or x_(i-1, j - S_(i-1)) & "otherwise"
-) \
-pi_(S,T) (x) &= x_(m,T)
+    "false" & "if " i = 0 and j > 0,
+    x_(i-1,j) & "if " s_i > j,
+    x_(i-1,j) or x_(i-1,j - s_i) & "otherwise"
+  ) \
+  pi_(S,T)(x) = x_(m,T)
 $
 
-#let inst_S = (3, 5, 8);
-#let inst_T = 11;
-#let inst_m = inst_S.len();
+Row $i$ depends only on row $i-1$ (and column $0$ is always true), so each step of $F$
+completes one more row and the fixed point is reached after $m + 1$ steps.
 
-#figure(
-  caption: [Subset Sum DP table for $S = #inst_S$ and $T = #inst_T$.],
-$#{
-  let rho = ((inst_m, inst_T)) => {
-    let x = ()
-    for i in range(0, inst_m + 1) {
-      let row = ()
-      for j in range(0, inst_T + 1) {
-        row.push(none)
-      }
-      x.push(row)
-    }
-    x
-  }
-  let F_i = (S) => (x) => ((i,j)) => {
-    if j == 0 {
-      true
-    } else if i == 0 and j > 0 {
-      false
-    } else {
-      let item = S.at(i - 1)
-      if item > j {
-        // Item is too large, 'without' case
-        let without = x.at(i - 1).at(j)
-        if without != none {
-          without
-        } else {
-          none
-        }
-      } else {
-        // 'with' or 'without'
-        let without = x.at(i - 1).at(j)
-        let with = x.at(i - 1).at(j - item)
-        if without != none and with != none {
-          without or with
-        } else {
-          none
-        }
+#let subset-sum-mc(inst) = {
+  let (S, T) = inst
+  let m = S.len()
+  let rho = ((S, T)) => range(S.len() + 1).map(_ => range(T + 1).map(_ => none))
+  let F_S = x => ((i, j)) => {
+    if j == 0 { true } else if i == 0 { false } else {
+      let s = S.at(i - 1)
+      let skip = x.at(i - 1).at(j)
+      if s > j { skip } else {
+        let take = x.at(i - 1).at(j - s)
+        if skip != none and take != none { skip or take } else { none }
       }
     }
   }
-  let F = (S) => map_tensor(F_i(S), dim: 2)
-
-  let pi = ((S, T)) => (x) => {
-    let m = S.len()
-    x.at(m).at(T)
-  }
-
-  // draw DP table
-  let x_h(x, diff_mask:none) = {
-    set text(weight: "bold")
-    let rows = ()
-
-    // header row: Target Sum
-    let header_cells = ()
-    header_cells.push(rect(fill: green.transparentize(70%), inset: 4pt)[$i slash j$])
-    for j in range(0, inst_T + 1) {
-      header_cells.push(rect(fill: orange.transparentize(70%), inset: 4pt)[$#j$])
-    }
-    rows.push(grid(columns: header_cells.len() * (14pt,), rows: 14pt, align: center + horizon, ..header_cells))
-
-    for i in range(0, x.len()) {
-      let row = ()
-      // left label: Item from S
-      if i == 0 {
-        row.push(rect(fill: green.transparentize(70%), inset: 4pt)[$0$])
-      } else {
-        row.push(rect(fill: green.transparentize(70%), inset: 4pt)[$#inst_S.at(i - 1)$])
-      }
-
-      for j in range(0, x.at(i).len()) {
-        let val = if x.at(i).at(j) == true {
-          $checkmark$
-        } else if x.at(i).at(j) == false {
-          $times$
-        } else {
-          $bot$
-        }
-        
-        if diff_mask != none and diff_mask.at(i).at(j) {
-          row.push(rect(stroke: gray, fill: yellow.transparentize(70%), inset: 4pt)[#val])
-        } else {
-          row.push(rect(stroke: gray, inset: 4pt)[#val])
-        }
-      }
-      rows.push(grid(columns: row.len() * (14pt,), rows: 14pt, align: center + horizon, ..row))
-    }
-    grid(align: center, ..rows)
-  }
-
+  let F = map_tensor(F_S, dim: 2)
+  let pi = x => x.at(m).at(T)
   mapcode-viz(
-    rho, F(inst_S), pi((inst_S, inst_T)),
-    X_h: x_h,
-    pi_name: [$pi ((#inst_m, #inst_T))$],
-    group-size: calc.min(3, inst_m),
-    cell-size: 55mm, scale-fig: 65%
-  )((inst_m, inst_T))
-}$)
+    rho,
+    F,
+    pi,
+    I_h: ((S, T)) => [$S = (#S.map(str).join(", "))$ \ $T = #T$],
+    X_h: (x, diff_mask: none) => table-view(
+      x,
+      diff_mask,
+      row-labels: ([$emptyset$],) + S.map(s => [#s]),
+      col-labels: range(T + 1).map(j => [#j]),
+      corner: [$s_i slash j$],
+      width: 1.6em,
+    ),
+    A_h: show-val,
+    F_name: [$F_S$],
+    pi_name: [$mpi_(S,T)$],
+    group-size: 2,
+    spacing: (8mm, 8mm),
+    node-shape: rect,
+  )(inst)
+}
+
+#let inst = ((3, 5, 8), 11)
+#figure(
+  caption: [Subset sum via mapcode for $S = (3, 5, 8)$, $T = 11$. Row $i$ is labelled with item
+    $s_i$, column $j$ is the partial target; T/F denote true/false.],
+  subset-sum-mc(inst),
+)
+#legend

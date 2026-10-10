@@ -198,8 +198,11 @@
     y_pos_fix = xs.len() - 1
   }
 
+  // Rectangular nodes by default: fletcher's auto shape turns square-ish states (tables)
+  // into circles, which makes edges overlap them.
   let fig = diagram(
-    ..args,
+    ..args.pos(),
+    ..((node-shape: rect) + args.named()),
     node((0, 0), I_h(inst), name: <inst>),
     edge(rho_name, "->"),
     ..chain,
