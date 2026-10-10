@@ -1,30 +1,21 @@
-# General
-.vscode
-.idea
-_things
-desktop.ini
+# Typst build output (CI publishes main.pdf as a release artifact)
+*.pdf
+*.png
+*.svg
+!assets/**
+
+# Lean build artifacts (Mapcode.lean)
+.lake/
+build/
+lake-packages/
+
+# Editors and OS
+.vscode/
+.idea/
+*.swp
+*~
 .DS_Store
+desktop.ini
 
-# Tests and benchmarks
-tests/store
-tests/suite/**/*.pdf
-tests/fuzz/target
-tests/fuzz/corpus
-tests/fuzz/artifacts
-tests/fuzz/coverage
-tarpaulin-report.html
-
-# Rust
-/target
-**/*.rs.bk
-
-# Node
-node_modules
-tools/test-helper/dist
-package-lock.json
-
-# Nix
-/result
-.direnv/
-
-**/*.pdf
+# Local scratch
+_things/
