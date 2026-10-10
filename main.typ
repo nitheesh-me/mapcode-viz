@@ -75,3 +75,7 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/MegeSort.typ"
 #include "algorithms/sum_of_digits.typ"
 #include "algorithms/prefix_sum.typ"
+#include "algorithms/decode_ways.typ"
+#pagebreak()
+#include "algorithms/equal_sum_subset.typ"
+#pagebreak()
