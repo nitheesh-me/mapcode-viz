@@ -79,3 +79,6 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #pagebreak()
 #include "algorithms/equal_sum_subset.typ"
 #pagebreak()
+#include "algorithms/SubsetSum.typ"
+#pagebreak()
+#include "algorithms/RodCutting.typ"
