@@ -1,65 +1,50 @@
 # Mapcode Visualization
 
-Mapcode Visualization is a project aimed at modeling recursion and algorithms using the `mapcode` framework. This repository contains Typst documents that demonstrate various algorithms and their implementations in a structured and visually appealing manner.
+Mapcode Visualization models recursion and algorithms in the *mapcode* framework (Viswanath, *Mapcode: An Introduction to Mathematical Computer Science*). Each algorithm is an initialisation $\rho : I \to X$, a transformation $F : X \to X$ iterated to its fixed point, and a projection $\pi : X \to A$. Every figure in the generated book draws the whole run: the instance, each state $x_0, F(x_0), \dots$ with the cells changed by the last step highlighted, the fixed point, and the answer.
 
-## Features (TODO: Update as per latest changes)
+`Mapcode.lean` formalises the model in Lean 4. It contains the unverified triple and a verified version with a variant $\sigma$ and an invariant value $\theta$. The book's first chapter summarises it.
 
-- **Algorithm Implementations**: Includes examples like factorial, Fibonacci, binomial coefficients, and longest common subsequence.
-- **LeetCode Problems**: Solutions to selected problems, such as "Add Two Numbers."
-- **Typst Framework**: Utilizes Typst for document generation and visualization.
-- **CI/CD Integration**: Automated workflows for building and releasing Typst documents.
+## Contents
+| Chapter | Algorithms |
+|---|---|
+| The Mapcode Model | factorial (two ways) and bubble sort, shown with variant/invariant |
+| Basics | factorial, Fibonacci, sum of digits, digit reversal, parity, prefix sum |
+| Number Theory and Combinatorics | Euclid's GCD, binary exponentiation, binomial coefficients, Catalan numbers, integer partitions |
+| Dynamic Programming | LCS, edit distance, LIS, 0/1 knapsack, subset sum, rod cutting, coin change, matrix-chain multiplication, decode ways |
+| Sorting and Searching | binary search, merge sort |
+| Recursion and Divide-and-Conquer | Tower of Hanoi, N-Queens, closest pair of points |
+| Trees and Graphs | tree height, inorder traversal, Bellman–Ford |
+| LeetCode | add two numbers, longest palindromic substring, best time to buy/sell stock, house robber |
 
-## Getting Started
-
-### Prerequisites
-
-- [Typst](https://typst.app/) installed on your system.
-- A Linux-based environment (recommended).
-
-### Installation
-
-1. Clone the repository:
-
-   ```bash
-   git clone https://github.com/nitheesh-me/mapcode-viz.git
-   cd mapcode-viz
-   ```
-
-2. Install Typst if not already installed.
-
-### Usage
-
-To build the Typst document:
-
-```bash
-typst compile main.typ
+## Layout
+```
+main.typ                 book entry point (chapters + includes)
+chapters/                intro chapter on the model, contributors
+algorithms/<chapter>/    one .typ file per algorithm
+lib/mapcode.typ          mapcode, mapcode-hist, map_tensor, mapcode-viz
+lib/viz.typ              shared renderers: vec/table/array views, trees (cetz),
+                         graphs (fletcher), chessboards (board-n-pieces),
+                         plots (lilaq), pseudocode (lovelace)
+lib/style.typ            palette and notation helpers
+Mapcode.lean             Lean formalisation of the model
 ```
 
-or use the [VSCode extension for Typst](https://marketplace.visualstudio.com/items?itemName=myriad-dreamin.tinymist) to compile/preview directly from the editor.
+## Building
+Requires [Typst](https://typst.app/) 0.15 or newer. Packages are downloaded automatically on first compile.
+```bash
+git clone https://github.com/nitheesh-me/mapcode-viz.git
+cd mapcode-viz
+typst compile main.typ        # -> main.pdf
+```
+You can also preview it live with the [Tinymist](https://marketplace.visualstudio.com/items?itemName=myriad-dreamin.tinymist) VS Code extension.
 
-The output will be a PDF file named `main.pdf`.
+CI compiles the book on every push and pull request. Pushing a tag publishes a release with the PDF.
 
-### Contributing
+## Contributing
+See [CONTRIBUTING.md](.github/CONTRIBUTING.md) for the algorithm template and the rules every mapcode should follow.
 
-See the [CONTRIBUTING.md](CONTRIBUTING.md) file for guidelines on how to contribute to this project.
-
-### License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Roadmap
-
-- Add more algorithm examples.
-- Include advanced recursion techniques.
-- Enhance CI/CD workflows with additional checks.
-- Improve documentation and examples.
+## License
+Apache-2.0. See [LICENSE](LICENSE).
 
 ## Contact
-
-For any queries, feel free to reach out to:
-
-- **Nitheesh Chandra**: <nitheeshchandra.y@research.iiit.ac.in>
-
----
-
-Happy coding!
+- **Nitheesh Chandra**: nitheeshchandra.y@research.iiit.ac.in
