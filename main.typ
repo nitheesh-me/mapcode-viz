@@ -73,3 +73,4 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/OptimalMatrixChainProduct.typ"
 #pagebreak()
 #include "algorithms/MegeSort.typ"
+#include "algorithms/sum_of_digits.typ"
