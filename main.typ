@@ -86,3 +86,6 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/SubsetSum.typ"
 #pagebreak()
 #include "algorithms/RodCutting.typ"
+#include "algorithms/binary-exponentiation.typ"
+#pagebreak()
+#include "algorithms/gcd.typ"
