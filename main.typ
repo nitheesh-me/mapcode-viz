@@ -62,7 +62,6 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #pagebreak()
 #include "algorithms/closest_pair_of_points.typ"
 #pagebreak()
-#include "algorithms/edit_distance.typ"
 #pagebreak()
 #include "algorithms/n_queens.typ"
 #include "algorithms/BinarySearch.typ"
@@ -74,34 +73,28 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #pagebreak()
 #include "algorithms/gcd-euclid.typ"
 #pagebreak()
-#include "algorithms/mergesort.typ"
 #include "algorithms/editdistance.typ"
 #pagebreak()
 #include "algorithms/catalannumbers.typ"
 #include "algorithms/OptimalMatrixChainProduct.typ"
 #pagebreak()
-#include "algorithms/MegeSort.typ"
 #include "algorithms/sum_of_digits.typ"
 #include "algorithms/prefix_sum.typ"
 #include "algorithms/decode_ways.typ"
 #pagebreak()
-#include "algorithms/equal_sum_subset.typ"
 #pagebreak()
 #include "algorithms/SubsetSum.typ"
 #pagebreak()
 #include "algorithms/RodCutting.typ"
 #include "algorithms/binary-exponentiation.typ"
 #pagebreak()
-#include "algorithms/gcd.typ"
 #include "algorithms/BellmanFord.typ"
 #pagebreak()
 #include "algorithms/TreeHeight.typ"
 
-#include "algorithms/catalan.typ"
 #pagebreak()
 #include "algorithms/lis.typ"
 #pagebreak()
 #include "algorithms/toh.typ"
 #include "algorithms/Mergesort.typ"
 #pagebreak()
-#include "algorithms/IntegerPartitions.typ"
