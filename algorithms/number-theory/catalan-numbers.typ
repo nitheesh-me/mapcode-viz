@@ -1,107 +1,83 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Catalan Numbers
+#set math.equation(numbering: none)
 
-Compute the $n$-th Catalan number, which appears in many combinatorial problems such as counting the number of valid parentheses expressions, binary search trees, paths in a grid, etc.
+Compute the $n$-th Catalan number $C_n$. Catalan numbers count many combinatorial objects:
+well-formed strings of $n$ pairs of parentheses, binary trees with $n$ internal nodes,
+triangulations of a convex $(n+2)$-gon, monotone lattice paths that stay below the diagonal,
+and so on.
 
 Formal definition:
 $
-"Cat"(n) = frac(1, n+1) binom(2n, n) = frac((2n)!, (n+1)!n!)
+  C_n = frac(1, n+1) binom(2n, n) = frac((2n)!, (n+1)! n!)
 $
-
-equivalently, as recursive definition:
+Equivalently, by splitting off the first matched pair (or the root of the tree):
 $
-"Cat"(n) = cases(
-  1 & "if " n = 0,
-  sum_(i=0)^(n-1) "Cat"(i) dot "Cat"(n-1-i) & "otherwise"
-)
+  C_n = cases(
+    1 & "if " n = 0,
+    sum_(k=0)^(n-1) C_k dot C_(n-1-k) & "if " n >= 1
+  )
 $
 
 Examples:
-- $"Cat"(0) = 1$
-- $"Cat"(1) = 1$
-- $"Cat"(2) = 2$
-- $"Cat"(3) = 5$
-- $"Cat"(4) = 14$
-- $"Cat"(5) = 42$
+- $C_0 -> 1$
+- $C_3 -> 5$
+- $C_4 -> 14$
+- $C_5 -> 42$
 
 *As mapcode:*
 
-_primitives_: `sum`($+$), `mul`($dot$)
+_primitives_: `sum`($+$) and `mul`($dot$) are strict, so a sum containing a $bot$ term is $bot$.
 
 $
-I = n:NN quad quad quad
-X_n & = [0..n] -> NN_bot quad quad quad
-A = NN\
-rho(n) & = { i -> bot | i in {0 dots n}} \
-F(x_i) & = cases(
+  I = NN quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
+  rho(n) = {i -> bot | i in [0..n]} \
+  F(x)_i = cases(
     1 & "if " i = 0,
-    sum_(k=0)^(i-1) x_k dot x_(i-1-k) & "otherwise"
-)\
-pi_n (x) & = x_n
+    sum_(k=0)^(i-1) x_k dot x_(i-1-k) & "if " i >= 1
+  ) \
+  pi_n (x) = x_n
 $
 
-#let inst = 5;
-#figure(
-  caption: [Catalan Numbers computation using mapcode for $n = #inst$],
-$#{
-  let rho = (inst) => {
-    let x = ()
-    for i in range(0, inst + 1) {
-      x.push(none)
-    }
-    x
-  }
+Cell $i$ depends on every earlier cell $x_0, dots, x_(i-1)$, so it becomes defined one step
+after $x_(i-1)$ does: the table fills in index order and the fixed point is reached after
+$n + 1$ steps.
 
-  let F_i = (x) => ((i,)) => {
-    if i == 0 {
-      1
-    } else {
-      // Check if all dependencies are ready
-      let all_ready = true
-      for k in range(0, i) {
-        if x.at(k) == none {
-          all_ready = false
-          break
-        }
-      }
-      
-      if all_ready {
-        let total = 0
-        for k in range(0, i) {
-          total += x.at(k) * x.at(i - 1 - k)
-        }
-        total
-      } else {
-        none
-      }
-    }
+#let catalan-mc(n) = {
+  let rho = n => range(n + 1).map(_ => none)
+  let F_i = x => ((i,)) => {
+    if i == 0 { 1 } else if range(i).all(k => x.at(k) != none) {
+      range(i).map(k => x.at(k) * x.at(i - 1 - k)).sum()
+    } else { none }
   }
   let F = map_tensor(F_i, dim: 1)
-
-  let pi = (n) => (x) => x.at(n)
-
-  let X_h = (x, diff_mask: none) => {
-    set text(weight: "bold")
-    let cells = x.enumerate().map(((i, x_i)) => {
-      let val = if x_i != none {[$#x_i$]} else {[$bot$]}
-      if diff_mask != none and diff_mask.at(i) {
-        // changed element: highlight
-        rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]
-      } else {
-        rect(stroke: none, inset: 2pt)[$#val$]
-      }
-    })
-    $vec(delim: "[", ..cells)$
-  }
-
+  let pi = x => x.at(n)
   mapcode-viz(
-    rho, F, pi(inst),
-    X_h: X_h,
-    pi_name: [$mpi_#inst$],
-    group-size: calc.min(6, inst),
-    cell-size: 15mm, scale-fig: 95%
-  )(inst)
-}$
+    rho,
+    F,
+    pi,
+    X_h: (x, diff_mask: none) => vec-view(
+      x,
+      diff_mask,
+      labels: range(x.len()).map(i => [$C_#i$]),
+      vertical: true,
+      width: 2.2em,
+    ),
+    A_h: a => [$C_#n = #a$],
+    pi_name: [$mpi_#n$],
+    group-size: 4,
+    spacing: (8mm, 8mm),
+    node-shape: rect,
+  )(n)
+}
+
+#let inst = 5
+#figure(
+  caption: [Catalan numbers via mapcode for $n = #inst$; the cell labelled $C_i$ holds the
+    $i$-th Catalan number once defined.],
+  catalan-mc(inst),
 )
+#legend

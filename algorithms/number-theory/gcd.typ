@@ -1,120 +1,104 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
-
+#import "/lib/viz.typ": *
 
 == Euclidean GCD
 #set math.equation(numbering: none)
 
-Compute the Greatest Common Divisor (GCD) (also called HCF, Highest Common Factor) of two non-negative integers $a$ and $b$. i.e $a, b in NN_0, a >= 0, b >= 0$
+Compute the greatest common divisor (GCD, also called HCF, highest common factor) of two
+non-negative integers $a$ and $b$.
 
 Formal definition:
 $
-  gcd(a, b) = max { d in NN_0 mid d divides a "and" d divides b }
+  gcd(a, b) = max { d in NN | d divides a "and" d divides b } quad "for" (a, b) != (0, 0),
+  quad gcd(0, 0) = 0
 $
-Equivalently:
-$
-  gcd(a, b) = max { d in NN_0 mid exists m, n in NN_0 : a = d times m "and" b = d times n }
-$
+
+Euclid's algorithm rests on $gcd(a, b) = gcd(b, a mod b)$ for $b != 0$ and $gcd(a, 0) = a$.
+
 Examples:
-- $"gcd"(0, 0) -> 0$
-- $"gcd"(2, 3) -> 1$
-- $"gcd"(48, 18) -> 6$
-- $"gcd"(56, 98) -> 14$
+- $gcd(0, 0) -> 0$
+- $gcd(2, 3) -> 1$
+- $gcd(48, 18) -> 6$
+- $gcd(69, 96) -> 3$
 
 *As mapcode:*
 
-_primitives_: `mod`($mod$) is strict. i.e operation on $bot$ is undefined.
+_primitives_: `mod`, `max` and `min` are strict, i.e. they return $bot$ if an argument is
+$bot$. For a pair $p = (u, v)$ write $p_1 = u$ and $p_2 = v$.
+
+The state records the whole remainder sequence, one pair per cell. Its length must be fixed by
+$rho$, so we use Lamé's bound: if Euclid performs $N$ division steps on $(a, b)$ with
+$a >= b >= 1$, then $b >= "Fib"(N+1) >= phi^(N-1)$, where $phi = (1 + sqrt(5)) slash 2$. Hence
+$N <= L(b) = floor(log_phi b) + 1$ (and $L(0) = 0$), and cells $0..L$ always suffice.
+Consecutive Fibonacci numbers meet the bound exactly.
 
 $
-  I = (a,b): NN_0 times NN_0 quad quad quad X & = NN -> (NN_0 times NN_0)_bot quad quad quad A = NN_0 \
-                                    rho(a, b) & = {i -> bot | i in NN} \
-                                       F(x_i) & = cases(
-                                                  (a,b) & "if " i = 0,
-                                                  x_(i-1) & "if " pi_2(x_(i-1)) = 0,
-                                                  (pi_2(x_(i-1)), pi_1(x_(i-1)) mod pi_2(x_(i-1))) & "if " pi_2(x_(i-1)) != 0
-                                                ) \
-                                        pi(x) & = pi_1("first"(x_i | pi_2(x_i) = 0))
+  I = NN times NN quad quad X_(a,b) = [0..L] -> (NN times NN)_bot quad quad A = NN
+  quad quad "where" L = L(min(a, b)) \
+  rho(a, b) = {i -> bot | i in [0..L]} \
+  F_(a,b)(x)_i = cases(
+    (max(a, b), min(a, b)) & "if " i = 0,
+    ((x_(i-1))_2, space (x_(i-1))_1 mod (x_(i-1))_2) & "if " i >= 1 "and" (x_(i-1))_2 != 0,
+    bot & "if " i >= 1 "and" (x_(i-1) = bot "or" (x_(i-1))_2 = 0)
+  ) \
+  pi(x) = (x_i)_1 quad "for the unique" i "with" x_i != bot "and" (x_i)_2 = 0
 $
 
-where $pi_1$ and $pi_2$ extract the first and second components of a pair.
+Each step of $F$ defines one more pair of the remainder sequence. Once a pair $(g, 0)$ appears,
+every later cell stays $bot$, so the state stops changing; $pi$ reads $g$ off that last pair.
 
-
-#let inst_a = 69;
-#let inst_b = 96;
-#figure(
-  caption: [GCD computation using mapcode for $gcd(#str(inst_a), #str(inst_b))$],
-  $
-    #{
-      let max = (a, b) => if a >= b { a } else { b }
-      let min = (a, b) => if a <= b { a } else { b }
-
-      let rho = ((a, b)) => {
-        // Preallocate array with reasonable size (estimate log2(max(a,b)) + 2)
-        let max_val = calc.max(a, b)
-        let estimated_steps = if max_val > 0 { calc.floor(calc.log(max_val, base: 2)) + 3 } else { 3 }
-        let x = ()
-        for i in range(0, estimated_steps) { x.push(none) }
-        x.at(0) = (max(a, b), min(a, b))
-        x
-      }
-
-      let F_i = x => ((i,)) => {
-        if i == 0 { x.at(0) } else if i > 0 and x.at(i - 1) != none {
-          let (a_prev, b_prev) = x.at(i - 1)
-          if b_prev == 0 {
-            none // Stop filling array once we reach b=0
-          } else { (b_prev, calc.rem(a_prev, b_prev)) }
-        } else { none }
-      }
-      let F = map_tensor(F_i, dim: 1)
-
-      let pi = (a, b) => x => {
-        for i in range(0, x.len()) {
-          if x.at(i) != none {
-            let (a_i, b_i) = x.at(i)
-            if b_i == 0 { return a_i }
-          }
-        }
-        return none
-      }
-
-      let X_h = (x, diff_mask: none) => {
-        // Show all cells including none (as bot)
-        let cells = ()
-        for idx in range(x.len()) {
-          let x_i = x.at(idx)
-          let val = if x_i != none {
-            let (a, b) = x_i
-            [$(#a, #b)$]
-          } else { [$bot$] }
-
-          let is_changed = false
-          if diff_mask != none and type(diff_mask) == array and idx < diff_mask.len() {
-            let mask = diff_mask.at(idx)
-            if type(mask) == array { is_changed = mask.any(d => d) } else { is_changed = mask }
-          }
-
-          if is_changed { cells.push(rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]) } else {
-            cells.push(val)
-          }
-        }
-        $vec(delim: "[", ..cells)$
-      }
-
-      let A_h = a => if a != none { [$#a$] } else { [$bot$] }
-
-      mapcode-viz(
-        rho,
-        F,
-        pi(inst_a, inst_b),
-        X_h: X_h,
-        A_h: A_h,
-        pi_name: [$mpi$],
-        dim: 1,
-        group-size: 6,
-        cell-size: 10mm,
-        scale-fig: 85%,
-      )((inst_a, inst_b))
+#let gcd-mc(inst) = {
+  let (a, b) = inst
+  let phi = (1 + calc.sqrt(5)) / 2
+  let lame(m) = if m == 0 { 0 } else { calc.floor(calc.log(m, base: phi)) + 1 }
+  let rho = ((a, b)) => range(lame(calc.min(a, b)) + 1).map(_ => none)
+  let F_ab = x => ((i,)) => {
+    if i == 0 { (calc.max(a, b), calc.min(a, b)) } else {
+      let p = x.at(i - 1)
+      if p == none or p.at(1) == 0 { none } else { (p.at(1), calc.rem(p.at(0), p.at(1))) }
     }
-  $,
+  }
+  let F = map_tensor(F_ab, dim: 1)
+  let pi = x => {
+    let last = x.find(p => p != none and p.at(1) == 0)
+    if last == none { none } else { last.at(0) }
+  }
+  mapcode-viz(
+    rho,
+    F,
+    pi,
+    I_h: ((a, b)) => [$(#a, #b)$],
+    X_h: (x, diff_mask: none) => vec-view(
+      x,
+      diff_mask,
+      vertical: true,
+      width: 3.6em,
+      fmt: p => if p == none { botc } else { $(#p.at(0), #p.at(1))$ },
+    ),
+    F_name: [$F_(a,b)$],
+    pi_name: [$mpi$],
+    dim: 1,
+    group-size: 6,
+    spacing: (6mm, 8mm),
+  )(inst)
+}
+
+#let inst = (69, 96)
+#figure(
+  caption: [Euclid's GCD via mapcode for $(a, b) = (#inst.at(0), #inst.at(1))$; here
+    $L(69) = 9$ but only six pairs are needed.],
+  gcd-mc(inst),
 )
+#legend
+
+The worst case is a pair of consecutive Fibonacci numbers, where every cell up to Lamé's bound
+is used:
+
+#let inst2 = (89, 55)
+#figure(
+  caption: [Euclid's GCD via mapcode for the Fibonacci pair $(#inst2.at(0), #inst2.at(1))$:
+    $L(55) = 9$, and all ten cells $0..9$ are filled.],
+  gcd-mc(inst2),
+)
+#legend
