@@ -1,131 +1,64 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Sum of Digits
 #set math.equation(numbering: none)
 
-Compute the sum of digits of a positive integer $n$. i.e $n in NN, n > 0$
+Compute the sum of the decimal digits of a non-negative integer $n$.
 
 Formal definition:
 $
-"digitsum"(n) = sum_(i=0)^(d-1) floor(n / 10^i) mod 10
-$
-where $d$ is the number of digits in $n$.
-
-Equivalently (recursive):
-$
-"digitsum"(n) = cases(
-  n & "if" n < 10,
-  (n mod 10) + "digitsum"(floor(n / 10)) & "if" n >= 10
-)
+  "digitsum"(n) = cases(
+    0 & "if " n = 0,
+    (n mod 10) + "digitsum"(n "div" 10) & "if " n > 0
+  )
 $
 
 Examples:
-- $"digitsum"(123) -> 6$ (since $1 + 2 + 3 = 6$)
+- $"digitsum"(0) -> 0$
 - $"digitsum"(5) -> 5$
-- $"digitsum"(8296) -> 25$ (since $8 + 2 + 9 + 6 = 25$)
+- $"digitsum"(123) -> 6$
+- $"digitsum"(8296) -> 25$
 
 *As mapcode:*
 
-_primitives_: 
-- `div`($\/$): integer division (quotient)
-- `mod`($mod$): modulo operation (remainder)
-- `add`($+$): addition
-- `numdigits`: returns number of digits in a number
+_primitives_: integer division `div`, remainder `mod` and `add`($+$).
 
-These operations on $bot$ are undefined (strict).
-
-$ 
-I = NN quad quad quad X_n &= [0..d-1] -> (NN_bot times NN) quad quad quad A = NN
-$
-
-where $d = "numdigits"(n)$
+The state is a pair $(m, s)$: the digits $m$ still to be read and the running sum $s$ of the
+digits already read.
 
 $
-rho(n) & = {i -> (bot, n) | i in [0..d-1]}\
-F(x_n equiv (a_i, r_i))(i) & = cases(
-  (a_i, r_i) & "if " a_i != bot,
-  (r_i mod 10, floor(r_i / 10)) & "if " a_i = bot "and" i = 0,
-  (a_(i-1) + (r_(i-1) mod 10), floor(r_(i-1) / 10)) & "if " a_i = bot "and" i > 0 "and" a_(i-1) != bot,
-  (a_i, floor(r_i / 10)) & "if " a_i = bot "and" i > 0 "and" a_(i-1) = bot
-)\
-pi(x) & = a_(d-1)
+  I = NN quad quad X = NN times NN quad quad A = NN \
+  rho(n) = (n, 0) \
+  F(m, s) = cases(
+    (m "div" 10, s + m mod 10) & "if " m > 0,
+    (m, s) & "if " m = 0
+  ) \
+  pi(m, s) = s
 $
 
-where $x_i = (a_i, r_i)$ represents a pair of (accumulated sum, remaining number).
+Each step moves the last digit of $m$ into $s$, so $s + "digitsum"(m)$ stays equal to
+$"digitsum"(n)$. Once $m = 0$ the state is a fixed point and $s$ is the answer; this takes
+one step per digit.
 
-#let inst = 8296;
-#figure(
-  caption: [Sum of digits computation using mapcode for $n = #inst$],
-$
-#{
-  let num_digits = (n) => {
-    if n == 0 { return 1 }
-    let count = 0
-    while n > 0 {
-      count += 1
-      n = calc.quo(n, 10)
-    }
-    count
-  }
-
-  let rho = (inst) => {
-    let d = num_digits(inst)
-    let x = ()
-    for i in range(0, d) {
-      x.push((none, inst))
-    }
-    x
-  }
-
-  let F_i = (x) => ((i,)) => {
-    let curr = x.at(i)
-    if curr.at(0) != none {
-      // Already computed, return as-is
-      curr
-    } else {
-      if i == 0 {
-        (calc.rem(curr.at(1), 10), calc.quo(curr.at(1), 10))
-      } else {
-        let prev = x.at(i - 1)
-        if prev.at(0) != none {
-          (prev.at(0) + calc.rem(prev.at(1), 10), calc.quo(prev.at(1), 10))
-        } else {
-          (curr.at(0), calc.quo(curr.at(1), 10))
-        }
-      }
-    }
-  }
-  let F = map_tensor(F_i, dim: 1)
-
-  let pi = (i) => (x) => x.at(i).at(0)
-
-  let X_h = (x, diff_mask: none) => {
-    let cells = x.enumerate().map(((i, pair)) => {
-      let val = if pair.at(0) != none and pair.at(1) != none {
-        [$(#pair.at(0), #pair.at(1))$]
-      } else if pair.at(0) == none and pair.at(1) != none {
-        [$(bot, #pair.at(1))$]
-      } else {
-        [$(bot, bot)$]
-      }
-      // if diff_mask != none and diff_mask.at(i) {
-      //   rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]
-      // } else {
-        rect(stroke: none, inset: 2pt)[$#val$]
-      // }
-    })
-    $vec(delim: "[", ..cells)$
-  }
-
-  let d = num_digits(inst)
+#let digitsum-mc(n) = {
+  let rho = n => (n, 0)
+  let F = ((m, s)) => if m > 0 { (calc.quo(m, 10), s + calc.rem(m, 10)) } else { (m, s) }
+  let pi = ((m, s)) => s
   mapcode-viz(
-    rho, F, pi(d - 1),
-    X_h: X_h,
-    pi_name: [$pi$],
-    group-size: calc.min(7, d),
-    cell-size: 15mm, scale-fig: 85%
-  )(inst)
+    rho,
+    F,
+    pi,
+    X_h: (x, diff_mask: none) => vec-view(x, diff_mask, labels: ([$m$], [$s$]), width: 3em),
+    group-size: 3,
+    spacing: (10mm, 10mm),
+  )(n)
 }
-$
+
+#let inst = 8296
+#figure(
+  caption: [Sum of digits via mapcode for $n = #inst$.],
+  digitsum-mc(inst),
 )
+#legend

@@ -20,10 +20,11 @@
   } else if type(v) == str { raw(v) } else if type(v) == content { v } else { $#v$ }
 }
 
-// One boxed cell.
+// One boxed cell. `width: auto` sizes the cell to its content (for long values).
 #let cell(v, changed: false, fill: none, fmt: show-val, width: 1.9em, height: 1.6em, stroke: 0.5pt + c-grid) = box(
   width: width,
   height: height,
+  inset: if width == auto { (x: 0.4em) } else { 0pt },
   fill: if changed { c-changed } else { fill },
   stroke: stroke,
   align(center + horizon, text(size: 0.9em, fmt(v))),
@@ -33,6 +34,7 @@
 #let label-cell(body, fill: none, width: 1.9em, height: 1.6em) = box(
   width: width,
   height: height,
+  inset: if width == auto { (x: 0.4em) } else { 0pt },
   fill: fill,
   align(center + horizon, text(size: 0.8em, fill: if fill == none { c-muted } else { black }, body)),
 )

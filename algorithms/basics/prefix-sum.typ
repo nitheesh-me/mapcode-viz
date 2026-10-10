@@ -1,118 +1,69 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Prefix Sum
 #set math.equation(numbering: none)
 
-Compute the prefix sum of an array of integers. Given an array $A = [a_0, a_1, ..., a_(n-1)]$, compute the prefix sum array where each element is the sum of all elements up to that position.
+Given an array $a = [a_0, ..., a_(n-1)]$ of integers, compute its prefix sums: the sum of
+the first $i$ elements for every $i in [0..n]$.
 
 Formal definition:
 $
-"prefixsum"(A)[i] = sum_(j=0)^(i) A[j]
-$
-
-Equivalently (recursive):
-$
-"prefixsum"(A)[i] = cases(
-  A[0] & "if" i = 0,
-  "prefixsum"(A)[i-1] + A[i] & "if" i > 0
-)
+  S(0) & = 0, \
+  S(i) & = S(i-1) + a_(i-1) quad "for " 1 <= i <= n
 $
 
 Examples:
-- $"prefixsum"([1, 2, 3, 4]) -> [1, 3, 6, 10]$
-- $"prefixsum"([5, -2, 3]) -> [5, 3, 6]$
-- $"prefixsum"([10]) -> [10]$
+- $[1, 2, 3, 4] -> [0, 1, 3, 6, 10]$
+- $[5, -2, 3] -> [0, 5, 3, 6]$
+- $[] -> [0]$
 
 *As mapcode:*
 
-_primitives_: 
-- `add`($+$): addition
-- `size`: returns the length of an array
+_primitives_: `add`($+$) is strict, i.e. $bot + v = v + bot = bot$.
 
-Addition on $bot$ is undefined (strict).
-
-$ 
-I = NN times ZZ^* quad quad quad X_n &= [0..n-1] -> (ZZ_bot times ZZ) quad quad quad A = ZZ^n
-$
-
-where $n = |A|$ is the size of the input array.
+The input array is instance data: it lives in $I$ and reaches $F$ through the closure $F_a$;
+the state holds only the prefix sums.
 
 $
-rho(n, A) & = {i -> (bot, A[i]) | i in [0..n-1]}\
-F(x_n equiv (p_i, a_i))(i) & = cases(
-  (p_i, a_i) & "if " p_i != bot,
-  (a_i, a_i) & "if " p_i = bot "and" i = 0,
-  (p_(i-1) + a_i, a_i) & "if " p_i = bot "and" i > 0 "and" p_(i-1) != bot,
-  (bot, a_i) & "if " p_i = bot "and" i > 0 "and" p_(i-1) = bot
-)\
-pi(x equiv (p_i, a_i)) & = [p_0, p_1, ..., p_(n-1)]
+  I = ZZ^* quad quad X_n = [0..n] -> ZZ_bot quad quad A = ZZ^(n+1) \
+  rho(a) = {i -> bot | i in [0..n]} quad "where" n = |a| \
+  F_a (x)_i = cases(
+    0 & "if " i = 0,
+    x_(i-1) + a_(i-1) & "if " i >= 1
+  ) \
+  pi(x) = [x_0, ..., x_n]
 $
 
-where $(p_i, a_i)$ represents a pair of (prefix sum, array element).
+Cell $i$ becomes defined one step after cell $i-1$, so the table fills left to right and the
+fixed point is reached after $n+1$ steps.
 
-#let inst = (1, 2, 3, 4, 5);
-#figure(
-  caption: [Prefix sum computation using mapcode for array $#inst$],
-$
-#{
-  let rho = (arr) => {
-    let x = ()
-    for val in arr {
-      x.push((none, val))
-    }
-    x
-  }
-
-  let F_i = (x) => ((i,)) => {
-    let curr = x.at(i)
-    if curr.at(0) != none {
-      // Already computed, return as-is
-      curr
-    } else {
-      if i == 0 {
-        (curr.at(1), curr.at(1))
-      } else {
-        let prev = x.at(i - 1)
-        if prev.at(0) != none {
-          (prev.at(0) + curr.at(1), curr.at(1))
-        } else {
-          (curr.at(0), curr.at(1))
-        }
-      }
-    }
+#let prefix-mc(a) = {
+  let n = a.len()
+  let rho = a => range(a.len() + 1).map(_ => none)
+  let F_i = x => ((i,)) => {
+    if i == 0 { 0 } else if x.at(i - 1) != none { x.at(i - 1) + a.at(i - 1) } else { none }
   }
   let F = map_tensor(F_i, dim: 1)
-
-  let pi = (x) => {
-    x.map(pair => pair.at(0))
-  }
-
-  let X_h = (x, diff_mask: none) => {
-    let cells = x.enumerate().map(((i, pair)) => {
-      let val = if pair.at(0) != none and pair.at(1) != none {
-        [$(#pair.at(0), #pair.at(1))$]
-      } else if pair.at(0) == none and pair.at(1) != none {
-        [$(bot, #pair.at(1))$]
-      } else {
-        [$(bot, bot)$]
-      }
-      // if diff_mask != none and diff_mask.at(i) {
-      //   rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]
-      // } else {
-        rect(stroke: none, inset: 2pt)[$#val$]
-      // }
-    })
-    $vec(delim: "[", ..cells)$
-  }
-
+  let pi = x => x
   mapcode-viz(
-    rho, F, pi,
-    X_h: X_h,
-    pi_name: [$mpi $],
-    group-size: calc.min(7, inst.len()),
-    cell-size: 15mm, scale-fig: 85%
-  )(inst)
+    rho,
+    F,
+    pi,
+    I_h: a => stack(dir: ttb, spacing: 3pt, align(left, text(size: 0.8em)[$a =$]), array-view(a)),
+    X_h: (x, diff_mask: none) => vec-view(x, diff_mask, vertical: true),
+    A_h: x => [$[#x.map(str).join(", ")]$],
+    pi_name: [$mpi$],
+    F_name: [$F_a$],
+    group-size: 4,
+    spacing: (8mm, 10mm),
+  )(a)
 }
-$
+
+#let inst = (3, 1, 4, 1, 5)
+#figure(
+  caption: [Prefix sums via mapcode for $a = (#inst.map(str).join(", "))$.],
+  prefix-mc(inst),
 )
+#legend

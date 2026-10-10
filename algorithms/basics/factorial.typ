@@ -1,80 +1,64 @@
-
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
-
+#import "/lib/viz.typ": *
 
 == Factorial
 #set math.equation(numbering: none)
 
-Compute the factorial of a non-negative integer $n$. i.e $n in NN_0, n >= 0$
+Compute the factorial $n!$ of a non-negative integer $n$.
 
 Formal definition:
 $
-  n! = product_(k=1)^(n) k
-$
-Equivalently:
-$
-  0! & = 1 \
-  n! & = n * (n - 1)! "for" n in NN, n ≥ 1
+  0! & = 1, \
+  n! & = n dot (n-1)! quad "for " n >= 1
 $
 
 Examples:
-- $"fact"(0) -> 1$
-- $"fact"(5) -> 120$
+- $0! -> 1$
+- $1! -> 1$
+- $5! -> 120$
+- $6! -> 720$
 
 *As mapcode:*
 
-_primitives_: `product`($*$) and `subtract`($-$) are strict. i.e product and subtract on $bot$ is undefined.
+_primitives_: `product`($dot$) is strict, i.e. $i dot bot = bot$.
 
 $
-  I = n:NN quad quad quad X_n & = [0..n] -> NN_bot quad quad quad A = NN \
-                       rho(n) & = {i -> bot | i in [0..n]} \
-                       F(x_n) & = cases(
-                                  1 & "if " n = 0,
-                                  n * x_(n-1) & "if " n > 0
-                                ) \
-                        pi(x) & = "last"(x) = x_(|x| - 1)
+  I = NN quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
+  rho(n) = {i -> bot | i in [0..n]} \
+  F(x)_i = cases(
+    1 & "if " i = 0,
+    i dot x_(i-1) & "if " i >= 1
+  ) \
+  pi_n (x) = x_n
 $
 
+Cell $i$ becomes defined one step after cell $i-1$, so the table fills left to right. The
+number of undefined cells, $sigma(x) = |{i | x_i = bot}|$, drops by one per step and the
+fixed point is reached after $n+1$ steps, when $sigma = 0$.
 
+#let fact-mc(n) = {
+  let rho = n => range(n + 1).map(_ => none)
+  let F_i = x => ((i,)) => {
+    if i == 0 { 1 } else if x.at(i - 1) != none { i * x.at(i - 1) } else { none }
+  }
+  let F = map_tensor(F_i, dim: 1)
+  let pi = x => x.at(n)
+  mapcode-viz(
+    rho,
+    F,
+    pi,
+    X_h: (x, diff_mask: none) => vec-view(x, diff_mask, width: 2.3em, vertical: true),
+    pi_name: [$mpi_#n$],
+    sigma: x => x.filter(v => v == none).len(),
+    group-size: 4,
+    spacing: (8mm, 10mm),
+  )(n)
+}
 
-#let inst = 6;
+#let inst = 6
 #figure(
-  caption: [Factorial computation using mapcode for $n = #inst$],
-  $
-    #{
-      let rho = inst => {
-        let x = ()
-        for i in range(0, inst + 1) { x.push(none) }
-        x
-      }
-
-      let F_i = x => ((i,)) => { if i == 0 { 1 } else if x.at(i - 1) != none { i * x.at(i - 1) } else { none } }
-      let F = map_tensor(F_i, dim: 1)
-
-      let pi = i => x => x.at(i)
-
-      let X_h = (x, diff_mask: none) => {
-        let cells = x.enumerate().map(((i, x_i)) => {
-          let val = if x_i != none { [$#x_i$] } else { [$bot$] }
-          if diff_mask != none and diff_mask.at(i) {
-            // changed element: highlight
-            rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]
-          } else { rect(stroke: none, inset: 2pt)[$#val$] }
-        })
-        $vec(delim: "[", ..cells)$
-      }
-
-      mapcode-viz(
-        rho,
-        F,
-        pi(inst),
-        X_h: X_h,
-        pi_name: [$mpi (inst)$],
-        group-size: calc.min(7, inst + 1),
-        cell-size: 10mm,
-        scale-fig: 85%,
-      )(inst)
-    }
-  $,
+  caption: [Factorial via mapcode for $n = #inst$; $sigma$ counts the undefined cells.],
+  fact-mc(inst),
 )
+#legend

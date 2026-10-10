@@ -1,91 +1,63 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Parity
+#set math.equation(numbering: none)
 
-Determine whether a non-negative integer $n$ is even or odd using mutually recursive functions.
-
-Formal definition:
+Decide whether a non-negative integer $n$ is even or odd, via the mutually recursive
+functions
 $
-"is_even"(0) &= "true",\
-"is_odd"(0) &= "false",\
-"is_even"(n) &= "is_odd"(n-1) quad "for " n > 0,\
-"is_odd"(n) &= "is_even"(n-1) quad "for " n > 0
+  "even"(0) & = "T", quad & "odd"(0) & = "F", \
+  "even"(n) & = "odd"(n-1), quad & "odd"(n) & = "even"(n-1) quad "for " n >= 1
 $
 
 Examples:
 - $"parity"(0) -> ("T", "F")$
-- $"parity"(1) -> ("F", "T")$
 - $"parity"(3) -> ("F", "T")$
+- $"parity"(6) -> ("T", "F")$
 
 *As mapcode:*
 
-$ I = n : NN quad X_n = [0..n] -> (BB times BB)_bot quad A = BB times BB $
+The two functions are folded into one table whose cell $i$ holds the pair
+$("even"(i), "odd"(i))$; the swap is strict.
 
-$ rho(n) = {i |-> bot | i in {0 dots n}} $
-
-$ F(x_n) = cases(
-  ("T", "F") & "if " n = 0,
-  (x_(n-1)[1], x_(n-1)[0]) & "if " n > 0 "and" x_(n-1) != bot,
-  bot & "otherwise"
-) $
-
-$ pi(x) = x_(|x| - 1) $
-
-#let inst = 3;
-#figure(
-  caption: [Parity computation using mapcode for $n = #inst$],
 $
-#{
-  let rho = (inst) => {
-    let x = ()
-    for i in range(0, inst + 1) {
-      x.push(none)
-    }
-    x
-  }
+  I = NN quad quad X_n = [0..n] -> (BB times BB)_bot quad quad A = BB times BB \
+  rho(n) = {i -> bot | i in [0..n]} \
+  F(x)_i = cases(
+    ("T", "F") & "if " i = 0,
+    (o, e) "where" (e, o) = x_(i-1) & "if " i >= 1
+  ) \
+  pi_n (x) = x_n
+$
 
-  let F_i = (x) => ((i,)) => {
-    if i == 0 {
-      (true, false)
-    } else if x.at(i - 1) != none {
-      let (even_prev, odd_prev) = x.at(i - 1)
-      (odd_prev, even_prev)
-    } else {
-      none
-    }
+#let parity-mc(n) = {
+  let rho = n => range(n + 1).map(_ => none)
+  let F_i = x => ((i,)) => {
+    if i == 0 { (true, false) } else if x.at(i - 1) != none {
+      let (e, o) = x.at(i - 1)
+      (o, e)
+    } else { none }
   }
   let F = map_tensor(F_i, dim: 1)
-
-  let pi = (i) => (x) => x.at(i)
-
-  let X_h = (x, diff_mask: none) => {
-    let cells = x.enumerate().map(((i, x_i)) => {
-      let val = if x_i != none {
-        let (e, o) = x_i
-        let e_str = if e { "T" } else { "F" }
-        let o_str = if o { "T" } else { "F" }
-        $#e_str#o_str$
-      } else {
-        $bot$
-      }
-      if diff_mask != none and diff_mask.at(i) {
-        rect(fill: yellow.transparentize(70%), inset: 1pt)[$#val$]
-      } else {
-        rect(stroke: none, inset: 1pt)[$#val$]
-      }
-    })
-    $vec(delim: "[", ..cells)$
-  }
-
+  let pi = x => x.at(n)
+  let fmt-pair = v => if v == none { show-val(none) } else { [#show-val(v.at(0))#show-val(v.at(1))] }
   mapcode-viz(
-    rho, F, pi(inst),
-    X_h: X_h,
-    pi_name: [$pi(#inst)$],
+    rho,
+    F,
+    pi,
+    X_h: (x, diff_mask: none) => vec-view(x, diff_mask, fmt: fmt-pair, width: 2.3em, vertical: true),
+    A_h: a => [(#show-val(a.at(0)), #show-val(a.at(1)))],
+    pi_name: [$mpi_#n$],
     group-size: 4,
-    cell-size: 8mm,
-    scale-fig: 75%
-  )(inst)
+    spacing: (8mm, 10mm),
+  )(n)
 }
-$
+
+#let inst = 5
+#figure(
+  caption: [Parity via mapcode for $n = #inst$; each cell shows (even, odd).],
+  parity-mc(inst),
 )
+#legend
