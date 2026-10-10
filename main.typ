@@ -97,3 +97,8 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #pagebreak()
 #include "algorithms/TreeHeight.typ"
 
+#include "algorithms/catalan.typ"
+#pagebreak()
+#include "algorithms/lis.typ"
+#pagebreak()
+#include "algorithms/toh.typ"
