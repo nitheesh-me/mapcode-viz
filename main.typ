@@ -102,3 +102,6 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/lis.typ"
 #pagebreak()
 #include "algorithms/toh.typ"
+#include "algorithms/Mergesort.typ"
+#pagebreak()
+#include "algorithms/IntegerPartitions.typ"
