@@ -1,5 +1,5 @@
-#import "../../lib/style.typ": *
-#import "../../lib/mapcode.typ": *
+#import "/lib/style.typ": *
+#import "/lib/mapcode.typ": *
 
 #show link: underline
 

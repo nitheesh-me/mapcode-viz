@@ -1,5 +1,5 @@
-#import "../../lib/style.typ": *
-#import "../../lib/mapcode.typ": *
+#import "/lib/style.typ": *
+#import "/lib/mapcode.typ": *
 
 == Leetcode:322. #link("https://leetcode.com/problems/coin-change/")[Coin Change]
 

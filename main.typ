@@ -7,7 +7,9 @@
     (name: "Contributors from PoPL 2025, IIITH", email: "", affiliation: "Students, PoPL"),
   ),
   abstract: [
-    Recursion modeling in the `mapcode` framework.
+    Recursion modeling in the `mapcode` framework: every algorithm is presented as an
+    initialisation $rho$, a transformation $F$ iterated to its fixed point, and a projection $pi$,
+    and every figure shows the full sequence of states that $F$ passes through.
   ],
   keywords: ("Mapcode", "Recursion", "Programming"),
   date: datetime.today().display(),
@@ -42,59 +44,85 @@ $
 All primitives are _strict_ meaning they do not allow for undefined values (i.e., $bot$) to be used in their computations.
 
 #pagebreak()
+#include "chapters/mapcode-model.typ"
 
-= Examples
+#pagebreak()
+= Basics
+#include "algorithms/basics/factorial.typ"
+#pagebreak()
+#include "algorithms/basics/fibonacci.typ"
+#pagebreak()
+#include "algorithms/basics/sum-of-digits.typ"
+#pagebreak()
+#include "algorithms/basics/digit-reversal.typ"
+#pagebreak()
+#include "algorithms/basics/parity.typ"
+#pagebreak()
+#include "algorithms/basics/prefix-sum.typ"
 
-#include "algorithms/factorial.typ"
 #pagebreak()
-#include "algorithms/fibonacci.typ"
+= Number Theory and Combinatorics
+#include "algorithms/number-theory/gcd.typ"
 #pagebreak()
-#include "algorithms/parity.typ"
+#include "algorithms/number-theory/binary-exponentiation.typ"
 #pagebreak()
-#include "algorithms/DigitReversal.typ"
+#include "algorithms/number-theory/binomial-coefficients.typ"
 #pagebreak()
-#include "algorithms/BinomialCoefficients.typ"
+#include "algorithms/number-theory/catalan-numbers.typ"
 #pagebreak()
-#include "algorithms/LongestCommonSubsequence.typ"
+#include "algorithms/number-theory/integer-partitions.typ"
+
 #pagebreak()
-#include "algorithms/01-Knapsack.typ"
-#include "algorithms/integer_partition.typ"
+= Dynamic Programming
+#include "algorithms/dp/longest-common-subsequence.typ"
 #pagebreak()
-#include "algorithms/closest_pair_of_points.typ"
+#include "algorithms/dp/edit-distance.typ"
 #pagebreak()
+#include "algorithms/dp/longest-increasing-subsequence.typ"
 #pagebreak()
-#include "algorithms/n_queens.typ"
-#include "algorithms/BinarySearch.typ"
+#include "algorithms/dp/knapsack-01.typ"
 #pagebreak()
-#include "algorithms/InorderTraversal.typ"
-#include "algorithms/CoinChange.typ"
+#include "algorithms/dp/subset-sum.typ"
 #pagebreak()
+#include "algorithms/dp/rod-cutting.typ"
+#pagebreak()
+#include "algorithms/dp/coin-change.typ"
+#pagebreak()
+#include "algorithms/dp/matrix-chain.typ"
+#pagebreak()
+#include "algorithms/dp/decode-ways.typ"
+
+#pagebreak()
+= Sorting and Searching
+#include "algorithms/sorting-searching/binary-search.typ"
+#pagebreak()
+#include "algorithms/sorting-searching/merge-sort.typ"
+
+#pagebreak()
+= Recursion and Divide-and-Conquer
+#include "algorithms/recursion/tower-of-hanoi.typ"
+#pagebreak()
+#include "algorithms/recursion/n-queens.typ"
+#pagebreak()
+#include "algorithms/recursion/closest-pair.typ"
+
+#pagebreak()
+= Trees and Graphs
+#include "algorithms/trees-graphs/tree-height.typ"
+#pagebreak()
+#include "algorithms/trees-graphs/inorder-traversal.typ"
+#pagebreak()
+#include "algorithms/trees-graphs/bellman-ford.typ"
+
+#pagebreak()
+= LeetCode Problems
 #include "algorithms/leetcode/P2_add-two-numbers.typ"
 #pagebreak()
-#include "algorithms/gcd-euclid.typ"
+#include "algorithms/leetcode/P5_longest-palindrome-substring.typ"
 #pagebreak()
-#include "algorithms/editdistance.typ"
+#include "algorithms/leetcode/P121_best-time-to-buy-and-sell-stock.typ"
 #pagebreak()
-#include "algorithms/catalannumbers.typ"
-#include "algorithms/OptimalMatrixChainProduct.typ"
-#pagebreak()
-#include "algorithms/sum_of_digits.typ"
-#include "algorithms/prefix_sum.typ"
-#include "algorithms/decode_ways.typ"
-#pagebreak()
-#pagebreak()
-#include "algorithms/SubsetSum.typ"
-#pagebreak()
-#include "algorithms/RodCutting.typ"
-#include "algorithms/binary-exponentiation.typ"
-#pagebreak()
-#include "algorithms/BellmanFord.typ"
-#pagebreak()
-#include "algorithms/TreeHeight.typ"
+#include "algorithms/leetcode/P198_house-robber.typ"
 
 #pagebreak()
-#include "algorithms/lis.typ"
-#pagebreak()
-#include "algorithms/toh.typ"
-#include "algorithms/Mergesort.typ"
-#pagebreak()
+#include "chapters/contributors.typ"
