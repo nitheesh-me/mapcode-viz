@@ -68,8 +68,8 @@ Partial placements that cannot be extended (dead ends) simply produce no childre
   let boards(qs, per-row: 3) = if qs == none { botc } else if qs.len() == 0 { $emptyset$ } else {
     grid(
       columns: calc.min(qs.len(), per-row),
-      gutter: 2pt,
-      ..qs.map(q => board-view(n, q, square-size: 2.6mm)),
+      gutter: 6pt,
+      ..qs.map(q => box(stroke: 0.8pt + luma(60), board-view(n, q, square-size: 2.6mm))),
     )
   }
   let X_h = (x, diff_mask: none) => grid(
@@ -115,4 +115,3 @@ Partial placements that cannot be extended (dead ends) simply produce no childre
     queens in the first $k$ board rows, one mini board each.],
   queens-mc(inst),
 )
-#legend

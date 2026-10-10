@@ -116,4 +116,3 @@ no fixed point, and `mapcode-viz` stops with its max-iteration guard instead of 
     blue edges are the relaxations that lowered a distance in the last step.],
   bellman-ford-mc(inst, pos, names),
 )
-#legend

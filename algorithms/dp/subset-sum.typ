@@ -92,4 +92,3 @@ completes one more row and the fixed point is reached after $m + 1$ steps.
     $s_i$, column $j$ is the partial target; T/F denote true/false.],
   subset-sum-mc(inst),
 )
-#legend

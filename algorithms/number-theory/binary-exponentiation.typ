@@ -101,4 +101,3 @@ $|K(e)|$ steps.
     lists $K(#inst.at(1))$; odd keys multiply by the base.],
   binexp-mc(inst),
 )
-#legend

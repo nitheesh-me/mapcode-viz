@@ -47,7 +47,7 @@ git push origin feature/your-feature-name
    - `== Title` and a problem statement with examples
    - `*As mapcode:*`: one math block defining $I$, $X$, $A$, $\rho$, $F$, $\pi$, with an explicit $\bot$ case
    - optionally a `#pseudo[...]` box
-   - a figure built with `mapcode-viz(rho, F, pi, X_h: ...)(inst)`, followed by `#legend`
+   - a figure built with `mapcode-viz(rho, F, pi, X_h: ...)(inst)`
 3. Render states with the shared helpers in `lib/viz.typ` instead of hand-rolled rects and grids:
    - `vec-view`, `table-view`, `array-view` for tables and arrays
    - `tree-view`, `graph-view` for trees and graphs

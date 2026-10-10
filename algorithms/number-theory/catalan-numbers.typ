@@ -80,4 +80,3 @@ $n + 1$ steps.
     $i$-th Catalan number once defined.],
   catalan-mc(inst),
 )
-#legend

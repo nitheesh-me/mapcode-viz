@@ -99,7 +99,6 @@ fixed point is reached after at most $n + k$ steps.
     number being partitioned, column $j$ the largest part allowed.],
   partitions-mc(inst),
 )
-#legend
 
 #let ps = partitions(..inst)
 The #ps.len() partitions counted by $p(#inst.at(0), #inst.at(1))$ are

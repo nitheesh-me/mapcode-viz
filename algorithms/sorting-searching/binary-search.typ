@@ -103,7 +103,6 @@ $floor(log_2 n) + 2$ steps.
     interval $[l, h]$ and the probe $m$ for the next step; discarded cells are greyed.],
   bs-mc(inst),
 )
-#legend
 
 #let inst2 = ((1, 3, 5, 7, 9), 0)
 #figure(
@@ -111,4 +110,3 @@ $floor(log_2 n) + 2$ steps.
     $r = -1$.],
   bs-mc(inst2),
 )
-#legend

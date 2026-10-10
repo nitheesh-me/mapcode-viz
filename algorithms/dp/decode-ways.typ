@@ -96,7 +96,6 @@ $i$ and the digit $s_i$ that ends the prefix.
   caption: [Decode ways via mapcode for $s = #raw(inst)$; the answer $2$ counts AAJF and KJF.],
   decode-mc(inst),
 )
-#legend
 
 For $s = #raw(inst)$ the fixed point is $d = (1, 1, 2, 3, 2, 2)$: $d(4) = d(2) = 2$ because
 $s_4 = #raw("0")$ can only be read as part of `10`, and $d(5) = d(4) = 2$ because `06` is not a

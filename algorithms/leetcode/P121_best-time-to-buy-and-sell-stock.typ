@@ -123,4 +123,3 @@ fills right to left and reaches its fixed point after $n + 1$ steps.
     highest price from day $i$ on, row $q_i$ the best profit from day $i$ on.],
   stock-mc(inst),
 )
-#legend

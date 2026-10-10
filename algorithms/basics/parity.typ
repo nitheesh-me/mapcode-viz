@@ -60,4 +60,3 @@ $
   caption: [Parity via mapcode for $n = #inst$; each cell shows (even, odd).],
   parity-mc(inst),
 )
-#legend

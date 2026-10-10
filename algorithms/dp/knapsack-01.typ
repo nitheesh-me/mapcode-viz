@@ -87,4 +87,3 @@ point is reached after $m + 1$ steps.
     Row $i$ is labelled with item $i$'s weight/value, column $c$ is the capacity.],
   knap-mc(inst),
 )
-#legend

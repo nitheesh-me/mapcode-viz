@@ -94,7 +94,6 @@ domain and are shaded.
     $s_i dots s_j$ is a palindrome; green cells are palindromes.],
   lps-mc("babad"),
 )
-#legend
 
 #figure(
   caption: [The same mapcode for `"cbbd"`.],

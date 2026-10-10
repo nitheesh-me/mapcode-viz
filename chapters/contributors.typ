@@ -8,7 +8,7 @@ from the others were folded in.
 
 #let gh(u) = link("https://github.com/" + u, raw("@" + u))
 #table(
-  columns: (auto, 1fr, auto),
+  columns: (1fr, 1fr, auto),
   stroke: none,
   inset: (x: 6pt, y: 3pt),
   table.hline(stroke: 0.5pt),
@@ -37,6 +37,6 @@ from the others were folded in.
   table.hline(stroke: 0.5pt),
 )
 
-Thanks also to #gh("Manas-7854"), #gh("s1darthvader"), #gh("Egomax4"), #gh("alext04"),
-#gh("AndyJocy") and #gh("Varun0157") for alternative formulations (\#6, \#10, \#11, \#13, \#16,
+Thanks also to #gh("Manas-7854"), #gh("s1darthvader"), #gh("Egomax4"), #gh("alext04")
+and #gh("AndyJocy") for alternative formulations (\#6, \#10, \#11, \#13, \#16,
 \#18) that informed the final versions.

@@ -114,7 +114,6 @@ after its halves, so the fixed point is reached after about $log_2 (n \/ 3) + 2$
     _squared_ distance in the slice $P_x [i..j]$; the answer is its square root at $(0, 7)$.],
   closest-mc(inst),
 )
-#legend
 
 The split of the full set happens at $x = P_x [3].x$. The two halves have closest squared
 distances $x_(0,3)$ and $x_(4,7)$; the overall closest pair straddles the split and is only found

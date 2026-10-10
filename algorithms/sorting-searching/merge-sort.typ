@@ -122,7 +122,6 @@ holds in every state; at the fixed point $s >= n$, so the whole array is one sor
     mark the sorted runs of width $s$; highlighted cells changed in the last merge round.],
   merge-mc(inst),
 )
-#legend
 
 *Analysis:* $ceil(log_2 n)$ steps of $F$, each doing $O(n)$ work in `merge_pairs`, for
 $O(n log n)$ time in total.

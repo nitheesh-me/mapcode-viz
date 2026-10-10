@@ -90,7 +90,6 @@ every later cell stays $bot$, so the state stops changing; $pi$ reads $g$ off th
     $L(69) = 9$ but only six pairs are needed.],
   gcd-mc(inst),
 )
-#legend
 
 The worst case is a pair of consecutive Fibonacci numbers, where every cell up to Lamé's bound
 is used:
@@ -101,4 +100,3 @@ is used:
     $L(55) = 9$, and all ten cells $0..9$ are filled.],
   gcd-mc(inst2),
 )
-#legend

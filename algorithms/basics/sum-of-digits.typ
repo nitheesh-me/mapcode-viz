@@ -61,4 +61,3 @@ one step per digit.
   caption: [Sum of digits via mapcode for $n = #inst$.],
   digitsum-mc(inst),
 )
-#legend

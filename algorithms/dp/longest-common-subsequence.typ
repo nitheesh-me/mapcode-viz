@@ -87,4 +87,3 @@ at most $m + n$ steps.
     indexed by characters of $S$, columns by characters of $T$; $epsilon$ is the empty prefix.],
   lcs-mc(inst),
 )
-#legend

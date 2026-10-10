@@ -75,4 +75,3 @@ fixed point is reached after $n$ steps.
     the money $h_i$ in house $i$.],
   robber-mc(inst),
 )
-#legend

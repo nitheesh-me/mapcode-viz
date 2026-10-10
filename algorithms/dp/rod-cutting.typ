@@ -78,4 +78,3 @@ cell $i - 1$: the table fills left to right and reaches its fixed point after $n
   caption: [Rod cutting via mapcode for $P = (#inst-P.map(str).join(", "))$ and $n = #inst-n$.],
   rod-mc(inst-P, inst-n),
 )
-#legend

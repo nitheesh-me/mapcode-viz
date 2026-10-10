@@ -66,4 +66,3 @@ fixed point is reached after $n+1$ steps.
   caption: [Prefix sums via mapcode for $a = (#inst.map(str).join(", "))$.],
   prefix-mc(inst),
 )
-#legend

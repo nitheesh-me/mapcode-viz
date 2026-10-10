@@ -93,7 +93,6 @@ reaches its fixed point after $n + 1$ steps; cell $k$ then holds $2^k - 1$ moves
     move list for $k$ discs; $p q$ moves the top disc of peg $p$ to peg $q$.],
   hanoi-mc(inst),
 )
-#legend
 
 The answer $x_3$ can be replayed on the pegs. Each snapshot shows the pegs after one move; the
 disc that has just been moved is highlighted.

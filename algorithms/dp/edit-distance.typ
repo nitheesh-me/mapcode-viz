@@ -90,4 +90,3 @@ fixed point is reached after at most $m + n$ steps.
     are indexed by characters of $S$, columns by characters of $T$; $epsilon$ is the empty prefix.],
   ed-mc(inst),
 )
-#legend

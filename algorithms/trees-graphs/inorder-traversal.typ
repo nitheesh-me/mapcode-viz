@@ -91,4 +91,3 @@ traversal of the root therefore appears after (height $+ 1$) steps.
     its subtree list $x_i$ resolved; below each state is the root's list $x_0$.],
   inorder-mc(inst),
 )
-#legend

@@ -70,4 +70,3 @@ $L(i)$ steps and the fixed point is reached after $max_i L(i)$ steps.
     $"nums"_i$, the row below it the current $x_i$.],
   lis-mc(inst),
 )
-#legend

@@ -61,4 +61,3 @@ fixed point is reached after $n+1$ steps, when $sigma = 0$.
   caption: [Factorial via mapcode for $n = #inst$; $sigma$ counts the undefined cells.],
   fact-mc(inst),
 )
-#legend

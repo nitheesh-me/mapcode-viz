@@ -86,4 +86,3 @@ is reached after $"height"(0) + 1$ steps.
     resolved.],
   tree-height-mc(inst),
 )
-#legend

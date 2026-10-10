@@ -87,4 +87,3 @@ the fixed point is reached after $n$ steps. The lower triangle ($i > j$) lies ou
   caption: [Matrix chain multiplication via mapcode for $p = (#inst.map(str).join(", "))$.],
   mcm-mc(inst),
 )
-#legend

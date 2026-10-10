@@ -74,7 +74,6 @@ with cell $0$; every other cell is settled one step after the last cell it looks
   caption: [Coin change via mapcode for $C = {3, 5}$ and $a = 11$; $infinity$ marks unreachable amounts.],
   coin-mc((3, 5), 11),
 )
-#legend
 
 The same coins cannot make $a = 7$: the table reaches its fixed point with $x_7 = infinity$, so
 $pi$ returns $-1$.

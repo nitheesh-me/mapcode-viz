@@ -86,4 +86,3 @@ $n$ steps.
     Pascal's triangle (row $i$, column $j$); shaded cells $j > i$ are outside the triangle.],
   binom-mc(inst),
 )
-#legend

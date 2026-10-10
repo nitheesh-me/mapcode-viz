@@ -101,4 +101,3 @@ point is reached after $L$ steps.
     Grey cells are missing digits (read as $0$).],
   add-two-mc(inst),
 )
-#legend

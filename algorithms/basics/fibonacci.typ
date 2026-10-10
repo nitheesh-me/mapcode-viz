@@ -64,4 +64,3 @@ after $n$ steps; a pre-filled cell never changes again.
   caption: [Fibonacci via mapcode for $n = #inst$.],
   fib-mc(inst),
 )
-#legend

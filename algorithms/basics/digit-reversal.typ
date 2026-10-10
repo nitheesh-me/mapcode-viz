@@ -58,4 +58,3 @@ fixed point, reached after one step per digit.
   caption: [Digit reversal via mapcode for the 10-digit $n = #inst$.],
   rev-mc(inst),
 )
-#legend
