@@ -93,3 +93,7 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/binary-exponentiation.typ"
 #pagebreak()
 #include "algorithms/gcd.typ"
+#include "algorithms/BellmanFord.typ"
+#pagebreak()
+#include "algorithms/TreeHeight.typ"
+
