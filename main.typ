@@ -60,3 +60,6 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/gcd-euclid.typ"
 #pagebreak()
 #include "algorithms/mergesort.typ"
+#include "algorithms/editdistance.typ"
+#pagebreak()
+#include "algorithms/catalannumbers.typ"
