@@ -1,264 +1,103 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Decode Ways
+#set math.equation(numbering: none)
 
-Count the number of ways to decode a string of digits, where digits map to letters ('1' = 'A', '2' = 'B', ..., '26' = 'Z').
+A message of letters is encoded as digits by $"A" -> #raw("1")$, $"B" -> #raw("2")$, ..., $"Z" -> #raw("26")$.
+Given a digit string $s = s_1 s_2 dots s_n$, count the ways to decode it. A single digit decodes
+if it is `1`–`9` (never `0`), and a pair of digits decodes if it is `10`–`26`.
 
-*Key Rules:*
-- Single digit: '1'-'9' → valid (not '0')
-- Two digits: '10'-'26' → valid
-- Leading '0' → invalid
-
-*Recursive Formula:*
+Formal definition: let $d(i)$ be the number of decodings of the prefix $s_1 dots s_i$. Using the
+Iverson bracket $[P] in {0, 1}$:
 $
-"dp"[i] = cases(
-  1 & "if " i = 0,
-  "dp"[i-1] & "if " s[i-1] != '0' "(single valid only)",
-  "dp"[i-2] & "if " s[i-1] = '0' and 10 <= s[i-2:i] <= 26 "(double only)",
-  "dp"[i-1] + "dp"[i-2] & "if both valid"
+  d(i) = cases(
+    1 & "if " i = 0,
+    [s_1 != #raw("0")] & "if " i = 1,
+    [s_i != #raw("0")] dot d(i-1) + [10 <= s_(i-1) s_i <= 26] dot d(i-2) & "if " i >= 2
+  )
+$
+The first term counts decodings whose last letter uses the single digit $s_i$; the second those
+whose last letter uses the pair $s_(i-1) s_i$.
+
+#let decode-rho = s => range(s.len() + 1).map(_ => none)
+#let decode-F(s) = map_tensor(
+  x => ((i,)) => {
+    if i == 0 { return 1 }
+    let one = if s.at(i - 1) != "0" { 1 } else { 0 }
+    if i == 1 { return one }
+    if x.at(i - 1) == none or x.at(i - 2) == none { return none }
+    let pair = int(s.slice(i - 2, i))
+    let two = if 10 <= pair and pair <= 26 { 1 } else { 0 }
+    one * x.at(i - 1) + two * x.at(i - 2)
+  },
+  dim: 1,
 )
-$
+#let decode-pi(s) = x => x.at(s.len())
+
+Examples (the counts are computed by the mapcode below):
+#for (s, note) in (
+  ("12", [AB, L]),
+  ("226", [BBF, BZ, VF]),
+  ("06", [a leading `0` never decodes]),
+  ("11106", [AAJF, KJF]),
+  ("1201234", []),
+) [
+  - $#raw(s) -> #mapcode(decode-rho, decode-F(s), decode-pi(s))(s)$ #if note != [] [(#note)]
+]
 
 *As mapcode:*
 
-_primitives_: `add`($+$), `int`, `geq`($>=$), `leq`($<=$), `neq`($!=$) are strict.
+_primitives_: `add`($+$) and `mul`($dot$) are strict, i.e. $bot + v = v + bot = bot$; the
+brackets $[dots]$ only read $s$ and are always defined.
 
-$ 
-I = s:"String" quad quad quad
-&n = |s|\
-X_s &= [0..n] -> NN_bot quad quad quad
-A = NN\
-rho(s) & = { i -> bot | i in {0 dots n}} \
-F(x_i) & = cases(
+$
+  I = s : {#raw("0"), dots, #raw("9")}^n quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
+  rho(s) = {i -> bot | i in [0..n]} \
+  F_s (x)_i = cases(
     1 & "if " i = 0,
-    1 & "if " i = 1 and s[0] != '0',
-    0 & "if " i = 1 and s[0] = '0',
-    "compute"(i) & "if " i >= 2
-  )\
-pi(x) & = x_n
+    [s_1 != #raw("0")] & "if " i = 1,
+    bot & "if " i >= 2 " and " (x_(i-1) = bot " or " x_(i-2) = bot),
+    [s_i != #raw("0")] dot x_(i-1) + [10 <= s_(i-1) s_i <= 26] dot x_(i-2) & "otherwise"
+  ) \
+  pi_n (x) = x_n
 $
 
-where $"compute"(i)$ considers both single-digit and two-digit decodings.
+Cells $0$ and $1$ are set in the first step; after that cell $i$ becomes defined one step after
+cell $i - 1$, so the fixed point is reached after $n$ steps. Each cell is drawn under its index
+$i$ and the digit $s_i$ that ends the prefix.
 
-#let examples = (
-  ("12", "AB or L"),
-  ("226", "BZ, VF, or BBF"),
-  ("06", "Invalid"),
-  ("27", "BG only"),
-  ("11106", "AAJF or KJF"),
-  ("1201234", "Multiple ways"),
-);
-
-#figure(
-  caption: [Decode Ways - Summary of Examples],
-  table(
-    columns: (auto, auto, auto, auto),
-    align: center + horizon,
-    stroke: 0.5pt,
-    inset: 8pt,
-    
-    table.cell(fill: gray.lighten(60%))[*String*],
-    table.cell(fill: gray.lighten(60%))[*dp Array*],
-    table.cell(fill: gray.lighten(60%))[*Result*],
-    table.cell(fill: gray.lighten(60%))[*Decodings*],
-    
-    ..examples.map(((s, desc)) => {
-      let n = s.len()
-      
-      // Compute DP array
-      let dp = (1,)
-      
-      // dp[1]
-      if s.at(0) == "0" {
-        dp.push(0)
-      } else {
-        dp.push(1)
-      }
-      
-      // dp[2..n]
-      for i in range(2, n + 1) {
-        let ways = 0
-        
-        // Single digit
-        if s.at(i - 1) != "0" {
-          ways = ways + dp.at(i - 1)
-        }
-        
-        // Two digits
-        let two_str = s.slice(i - 2, i)
-        let val = int(two_str)
-        if val >= 10 and val <= 26 {
-          ways = ways + dp.at(i - 2)
-        }
-        
-        dp.push(ways)
-      }
-      
-      let result = dp.at(n)
-      let result_color = if result == 0 { red } else { green }
-      
-      (
-        [*#s*],
-        [#dp.map(v => str(v)).join(", ")],
-        text(fill: result_color, weight: "bold")[#result],
-        [#desc],
-      )
-    }).flatten()
-  )
-)
-
-// Larger example: "11106"
-#let inst_s = "11106";
-#let inst_n = inst_s.len();
-#figure(
-  caption: [Detailed trace for s = "#inst_s"],
-$#{
-  let s = inst_s
+#let decode-mc(s) = {
   let n = s.len()
-  
-  let rho = (s) => {
-    let x = ()
-    for i in range(0, n + 1) {
-      x.push(none)
-    }
-    x
-  }
-  
-  let is_valid_two_digit = (s, i) => {
-    if i < 2 { return false }
-    let two_digit_str = s.slice(i - 2, i)
-    let val = int(two_digit_str)
-    val >= 10 and val <= 26
-  }
-  
-  let F_i = (x) => ((i,)) => {
-    if i == 0 {
-      1
-    } else if i == 1 {
-      if s.at(0) == "0" { 0 } else { 1 }
-    } else {
-      if x.at(i - 1) == none or x.at(i - 2) == none {
-        return none
-      }
-      
-      let ways = 0
-      if s.at(i - 1) != "0" {
-        ways = ways + x.at(i - 1)
-      }
-      if is_valid_two_digit(s, i) {
-        ways = ways + x.at(i - 2)
-      }
-      ways
-    }
-  }
-  
-  let F = map_tensor(F_i, dim: 1)
-  let pi = (n) => (x) => x.at(n)
-  
   let X_h = (x, diff_mask: none) => {
-    let cells = x.enumerate().map(((i, x_i)) => {
-      let val = if x_i != none {[$#x_i$]} else {[$bot$]}
-      if diff_mask != none and diff_mask.at(i) {
-        rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]
-      } else {
-        rect(stroke: none, inset: 2pt)[$#val$]
-      }
-    })
-    $vec(delim: "[", ..cells)$
+    let idx = range(n + 1).map(i => label-cell([#i]))
+    stack(
+      dir: ttb,
+      grid(columns: n + 1, ..idx),
+      vec-view(x, diff_mask, labels: ([], ..s.clusters().map(c => text(fill: c-accent, raw(c))))),
+    )
   }
-  
   mapcode-viz(
-    rho, F, pi(n),
+    decode-rho,
+    decode-F(s),
+    decode-pi(s),
+    I_h: s => [$s = #raw(s)$],
     X_h: X_h,
-    pi_name: $pi$,
-    group-size: calc.min(6, n + 1),
-    cell-size: 12mm,
-    scale-fig: 95%
+    F_name: [$F_s$],
+    pi_name: [$mpi_#n$],
+    group-size: 3,
+    spacing: (8mm, 10mm),
   )(s)
 }
-$
-)
 
-// Even larger example: "1201234"
-#let inst_s2 = "1201234";
-#let inst_n2 = inst_s2.len();
+#let inst = "11106"
 #figure(
-  caption: [Detailed trace for s = "#inst_s2" (larger example)],
-$#{
-  let s = inst_s2
-  let n = s.len()
-  
-  let rho = (s) => {
-    let x = ()
-    for i in range(0, n + 1) {
-      x.push(none)
-    }
-    x
-  }
-  
-  let is_valid_two_digit = (s, i) => {
-    if i < 2 { return false }
-    let two_digit_str = s.slice(i - 2, i)
-    let val = int(two_digit_str)
-    val >= 10 and val <= 26
-  }
-  
-  let F_i = (x) => ((i,)) => {
-    if i == 0 {
-      1
-    } else if i == 1 {
-      if s.at(0) == "0" { 0 } else { 1 }
-    } else {
-      if x.at(i - 1) == none or x.at(i - 2) == none {
-        return none
-      }
-      
-      let ways = 0
-      if s.at(i - 1) != "0" {
-        ways = ways + x.at(i - 1)
-      }
-      if is_valid_two_digit(s, i) {
-        ways = ways + x.at(i - 2)
-      }
-      ways
-    }
-  }
-  
-  let F = map_tensor(F_i, dim: 1)
-  let pi = (n) => (x) => x.at(n)
-  
-  let X_h = (x, diff_mask: none) => {
-    let cells = x.enumerate().map(((i, x_i)) => {
-      let val = if x_i != none {[$#x_i$]} else {[$bot$]}
-      if diff_mask != none and diff_mask.at(i) {
-        rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]
-      } else {
-        rect(stroke: none, inset: 2pt)[$#val$]
-      }
-    })
-    $vec(delim: "[", ..cells)$
-  }
-  
-  mapcode-viz(
-    rho, F, pi(n),
-    X_h: X_h,
-    pi_name: $pi$,
-    group-size: calc.min(8, n + 1),
-    cell-size: 10mm,
-    scale-fig: 90%
-  )(s)
-}
-$
+  caption: [Decode ways via mapcode for $s = #raw(inst)$; the answer $2$ counts AAJF and KJF.],
+  decode-mc(inst),
 )
+#legend
 
-*Interpretation for s = "#inst_s":*
-- dp[0] = 1: "" (empty) → 1 way
-- dp[1] = 1: "1" → 1 way (A)
-- dp[2] = 2: "11" → 2 ways (AA, K)
-- dp[3] = 2: "111" → 2 ways (AAA, AK, KA - but limited by previous)
-- dp[4] = 1: "1110" → 1 way (only "10" is valid for the "0")
-- dp[5] = 2: "11106" → 2 ways (AAJF, KJF)
-
-*Interpretation for s = "#inst_s2":*
-The string "1201234" has multiple valid decodings due to various combinations of single and double-digit interpretations.
+For $s = #raw(inst)$ the fixed point is $d = (1, 1, 2, 3, 2, 2)$: $d(4) = d(2) = 2$ because
+$s_4 = #raw("0")$ can only be read as part of `10`, and $d(5) = d(4) = 2$ because `06` is not a
+letter.

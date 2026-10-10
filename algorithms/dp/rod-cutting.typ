@@ -1,117 +1,81 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
-== Rod Cutting Problem
+== Rod Cutting
+#set math.equation(numbering: none)
 
-Given a rod of length $n$ and a table of prices $P$ for different lengths,
-determine the maximum revenue $r_n$ obtainable by cutting up the rod and
-selling the pieces.
+Given a rod of length $n$ and a price table $P = (P_1, dots, P_m)$, where $P_j$ is the price of a
+piece of length $j$, determine the maximum revenue obtainable by cutting the rod into pieces
+(of length at most $m$) and selling them.
 
-Formal definition:
-Let $r_i$ be the maximum revenue for a rod of length $i$.
+Formal definition: let $r_i$ be the maximum revenue for a rod of length $i$.
 $
-r_n = cases(
-  0 & "if " n = 0,
-  max_(1 <= i <= n) (P_i + r_(n-i)) & "if " n > 0
-)
+  r_i = cases(
+    0 & "if " i = 0,
+    max_(1 <= j <= min(i, m)) (P_j + r_(i-j)) & "if " i > 0
+  )
 $
+
+Examples (with $P = (1, 5, 8, 9)$):
+- $r_2 -> 5$ (one piece of length 2)
+- $r_4 -> 10$ (two pieces of length 2)
+- $r_6 -> 16$ (lengths $2 + 2 + 2$, or $3 + 3$)
 
 *As mapcode:*
 
-Here, $NN$ is the set of non-negative integers $\{0, 1, ...\}$,
-and $NN_bot = NN union {bot}$.
-
-_primitives_: `max`, `sum`($+$)
+_primitives_: `max` and `sum`($+$) are strict, i.e. $bot + v = bot$ and $max$ is $bot$ as soon as
+one argument is $bot$.
 
 $
-I &= P:vec(NN) times n:NN quad quad quad "where" m = |P| \
-X_n &= [0..n] -> NN_bot quad quad quad \
-A &= NN \
-rho(n) &= { i -> bot | i in {0 dots n}} \
-F_P(x_i) &= cases(
+  I = P : NN^m times n : NN quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
+  rho(P, n) = {i -> bot | i in [0..n]} quad "(the prices are not needed to initialise)" \
+  F_P (x)_i = cases(
     0 & "if " i = 0,
-    max_(1 <= j <= i) (P_(j-1) + x_(i-j)) & "if " i > 0 " and " j-1 < m
-)\
-pi_n(x) &= x_n
+    max_(1 <= j <= min(i, m)) (P_j + x_(i-j)) & "if " i > 0
+  ) \
+  pi_n (x) = x_n
 $
 
-// Price table: P[0] = price for length 1, P[1] = price for length 2, etc.
-// So for this example: length 1 costs 1, length 2 costs 5, length 3 costs 8, length 4 costs 9
-#let inst_P = (1, 5, 8, 9);
-// Target length
-#let inst_n = 4;
+Cell $i$ depends on the $min(i, m)$ cells to its left, so it becomes defined one step after
+cell $i - 1$: the table fills left to right and reaches its fixed point after $n + 1$ steps.
 
-#figure(
-  caption: [Rod Cutting DP table for $n = #inst_n$ and prices $P = #inst_P$.],
-$
-#{
-  let rho = (inst) => {
-    let x = ()
-    for i in range(0, inst + 1) {
-      x.push(none)
-    }
-    x
-  }
-
-  let F_i = (P) => (x) => ((i,)) => {
-    if i == 0 {
-      0
-    } else if x.at(i) != none {
-      // Already computed, keep the value
-      x.at(i)
-    } else {
-      // Check if all dependencies are computed
-      let all_deps_ready = true
-      for j in range(1, i + 1) {
-        if j - 1 < P.len() and x.at(i - j) == none {
-          all_deps_ready = false
-          break
-        }
-      }
-      
-      if not all_deps_ready {
-        none
-      } else {
-        let max_rev = 0
-        // j is the length of the first cut
-        for j in range(1, i + 1) {
-          // Check if we have a price for this cut
-          if j - 1 < P.len() {
-            let p_j = P.at(j - 1)
-            let r_remaining = x.at(i - j)
-            max_rev = calc.max(max_rev, p_j + r_remaining)
-          }
-        }
-        max_rev
-      }
+#let rod-mc(P, n) = {
+  let m = P.len()
+  let rho = ((P, n)) => range(n + 1).map(_ => none)
+  let F_i = x => ((i,)) => {
+    if i == 0 { return 0 }
+    let deps = range(1, calc.min(i, m) + 1).map(j => (j, x.at(i - j)))
+    if deps.any(((j, r)) => r == none) { none } else {
+      calc.max(..deps.map(((j, r)) => P.at(j - 1) + r))
     }
   }
-  let F = map_tensor(F_i(inst_P), dim: 1)
-
-  let pi = (i) => (x) => x.at(i)
-
-  // X_h visualizer from fibonacci.typ
-  let X_h = (x, diff_mask: none) => {
-    let cells = x.enumerate().map(((i, x_i)) => {
-      let val = if x_i != none {[$#x_i$]} else {[$bot$]}
-      if diff_mask != none and diff_mask.at(i) {
-        // changed element: highlight
-        rect(fill: yellow.transparentize(70%), inset: 2pt)[$#val$]
-      } else {
-        rect(stroke: none, inset: 2pt)[$#val$]
-      }
-    })
-    $vec(delim: "[", ..cells)$
-  }
-
+  let F = map_tensor(F_i, dim: 1)
+  let pi = x => x.at(n)
+  let I_h = ((P, n)) => stack(
+    dir: ttb,
+    spacing: 4pt,
+    [$P$ (price by length):],
+    vec-view(P, none, labels: range(1, m + 1).map(j => [#j])),
+    [$n = #n$],
+  )
   mapcode-viz(
-    rho, F, pi(inst_n),
-    X_h: X_h,
-    pi_name: [$mpi (#inst_n)$],
-    group-size: inst_n + 1, // Show all steps in one row
-    cell-size: 10mm,
-    scale-fig: 95%
-  )(inst_n)
+    rho,
+    F,
+    pi,
+    I_h: I_h,
+    X_h: (x, diff_mask: none) => vec-view(x, diff_mask),
+    F_name: [$F_P$],
+    pi_name: [$mpi_#n$],
+    group-size: 3,
+    spacing: (8mm, 10mm),
+  )((P, n))
 }
-$
+
+#let inst-P = (1, 5, 8, 9)
+#let inst-n = 6
+#figure(
+  caption: [Rod cutting via mapcode for $P = (#inst-P.map(str).join(", "))$ and $n = #inst-n$.],
+  rod-mc(inst-P, inst-n),
 )
+#legend

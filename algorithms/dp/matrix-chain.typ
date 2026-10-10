@@ -1,161 +1,90 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Optimal Matrix Chain Multiplication
 #set math.equation(numbering: none)
 
-Given a sequence of matrices $A_(n_0 times n_1),A_(n_1 times n_2),..,A_(n_(q-1) times q_i)$, Compute the minimum number of scalar multiplication required to multiply all of them.  
-The algorithm takes in vector $d = (n_0,..,n_q)$ and returns an integer.
+Given a chain of matrices $M_1 M_2 dots M_n$, where $M_i$ has dimensions $p_(i-1) times p_i$,
+compute the minimum number of scalar multiplications needed to evaluate the product. The input is
+the dimension vector $p = (p_0, p_1, dots, p_n)$.
 
-Formal definition: $"num_mul"(d) := T_d (0,|d|-2)$ where
-
+Formal definition: let $m(i, j)$ be the cheapest cost of computing $M_i dots M_j$ for
+$1 <= i <= j <= n$. Splitting after $M_k$ costs $m(i, k) + m(k+1, j)$ plus
+$p_(i-1) p_k p_j$ for the final product.
 $
-  T_d (i, j) = min_{k|i<=k<j} T_d (i,k)+T_d (k+1,j)+d(i) dot d(j+1) dot d(k+1)
-$  
-This is a classic dynamic programming algorithm where we build up by solving subproblems. $T_d$ is a matrix whose (i,j)th represents the subproblem instance (n_i,...,n_j+1)
+  m(i, j) = cases(
+    0 & "if " i = j,
+    min_(i <= k < j) (m(i, k) + m(k+1, j) + p_(i-1) p_k p_j) & "if " i < j
+  ) \
+  "mcm"(p) = m(1, n)
+$
 
 Examples:
-- $"num_mul"(10, 20, 30, 40, 50) -> 38000 $
-- $"num_mul"(13, 5, 89, 3, 34) -> 2856$
+- $"mcm"(10, 20, 30, 40, 50) -> 38000$, from $((M_1 M_2) M_3) M_4$
+- $"mcm"(13, 5, 89, 3, 34) -> 2856$, from $(M_1 (M_2 M_3)) M_4$
+- $"mcm"(10, 30, 5, 60) -> 4500$, from $(M_1 M_2) M_3$
 
 *As mapcode:*
 
-_primitives_: $"min",+,<,<=$. \
-Non Comparitive Operations on $bot$ return $bot$. (For example: $4+bot=bot$ , $min({3,2,bot,10})=bot$)
+_primitives_: `min`, `sum`($+$) and `mul`($dot$) are strict: $4 + bot = bot$ and
+$min {3, 2, bot} = bot$.
 
 $
-  k in NN \
-  I = NN^k quad quad quad X & = NN times NN -> NN_bot quad quad quad
-  A = NN \
-    rho(d) & = {(i,j) -> bot | i,j in NN} \
-        F_d (x)(i,j) & = cases(
-                  0 & "if " i = j,
-                  min { x(i,k)+ x(k+1,j)+d(i) dot d(j+1) dot d(k+1) |i<=k<j} & "else"
-                ) \
-        pi_d (x) & = x(0,|d|-2)
+  I = p : NN^(n+1) quad quad X_n = {(i, j) | 1 <= i <= j <= n} -> NN_bot quad quad A = NN \
+  rho(p) = {(i, j) -> bot | 1 <= i <= j <= n} \
+  F_p (x)_(i,j) = cases(
+    0 & "if " i = j,
+    min_(i <= k < j) (x_(i,k) + x_(k+1,j) + p_(i-1) p_k p_j) & "if " i < j
+  ) \
+  pi_n (x) = x_(1,n)
 $
 
+Because $min$ is strict, cell $(i, j)$ stays $bot$ until all of its splits are known. The table
+therefore fills one diagonal per step: the chains of length $ell$ are settled by step $ell$, and
+the fixed point is reached after $n$ steps. The lower triangle ($i > j$) lies outside the domain.
 
-
-
-#let inst_dimvecs  = (13, 5, 89, 3, 34);
-#let inst_dm = inst_dimvecs.len();
-
-
-#figure(
-  caption: [Optimal Matrix Chain Multiplication for dimensions = #inst_dimvecs.],
-$#{
-  let rho = (inst_dimvecs) => {
-    let x = ()
-    for i in range(0, inst_dimvecs.len() - 1) {
-      let row = ()
-      for w in range(0, inst_dimvecs.len() - 1) {
-        row.push(none)
-      }
-      x.push(row)
-    }
-    x
+#let mcm-mc(p) = {
+  let n = p.len() - 1
+  // x.at(i - 1).at(j - 1) holds x_(i,j); cells with i > j are outside the domain and stay ⊥.
+  let rho = p => range(n).map(_ => range(n).map(_ => none))
+  let F_i = x => ((r, c)) => {
+    let (i, j) = (r + 1, c + 1)
+    if i > j { return none }
+    if i == j { return 0 }
+    let splits = range(i, j).map(k => {
+      let (a, b) = (x.at(i - 1).at(k - 1), x.at(k).at(j - 1))
+      if a == none or b == none { none } else { a + b + p.at(i - 1) * p.at(k) * p.at(j) }
+    })
+    if splits.any(s => s == none) { none } else { calc.min(..splits) }
   }
-
-  let safe_operation(a, b, c, op) = {
-    if a == none or b == none or c == none {
-      none
-    } else {
-      op(a, b, c)
-    }
-  }
-
-  let F_i(d) = (x) => ((i, j)) => {
-    if i == j {
-      0
-    } else {
-      let min_val = none
-      let mut = none
-      for k in range(i, j) {
-        let current = safe_operation(
-          x.at(i).at(k),
-          x.at(k+1).at(j), 
-          d.at(i) * d.at(j+1) * d.at(k+1),
-          (a, b, c) => a + b + c
-        )
-        
-        if current != none {
-          if min_val == none or current < min_val {
-            min_val = current
-          }
-        } else {
-          // If we want to propagate none immediately:
-          // return none
-          // If we want to check all k but return none if any is none:
-          min_val = none
-        }
-      }
-      min_val
-    }
-  }
-  
-
-  let F = (inst_dimvecs) => map_tensor(F_i(inst_dimvecs), dim: 2)
-
-  let pi = ((dimvec)) => (x) => {
-    let m = dimvec.len()
-    x.at(0).at(m - 2)
-  }
-
-  // (2, 3, 4, 5), (3, 4, 5, 6), 5)
-  let I_h(inst_dimvecs) = {
-    [
-      $d: vec(..#inst_dimvecs.map(i => [#i]), delim: "[")$
-    ]
-  }
-
-  
-  let x_h(x, diff_mask:none) = {
-    set text(weight: "bold")
-    let rows = ()
-
-    
-    let header_cells = ()
-    header_cells.push(rect(fill: green.transparentize(70%), inset: 14pt)[$id$])
-    
-
-    for w in range(0, x.at(0).len()) {
-      header_cells.push(rect(fill: orange.transparentize(70%), inset: 14pt)[$#w$])
-    }
-    rows.push(grid(columns: header_cells.len() * (30pt,), rows: 14pt, align: center + horizon, ..header_cells))
-
-    for i in range(0, x.len()) {
-      let row = ()
-      
-      if i == 0 {
-        row.push(rect(fill: green.transparentize(70%), inset: 14pt)[$0$])
-      }else{
-        row.push(rect(fill: green.transparentize(70%), inset: 14pt)[$#i$])
-      }
-
-      for w in range(0, x.at(i).len()) {
-        let val = if x.at(i).at(w) != none {[$#x.at(i).at(w)$]} else {[$bot$]}
-        if diff_mask != none and diff_mask.at(i).at(w) {
-          row.push(rect(stroke: gray, fill: yellow.transparentize(70%), inset: 14pt)[$#val$])
-        } else {
-          row.push(rect(stroke: gray, inset: 14pt)[$#val$])
-        }
-      }
-
-      rows.push(grid(columns: row.len() * (30pt,), rows: 14pt, align: center + horizon, ..row))
-    }
-
-    grid(align: center, ..rows)
-  }
-
+  let F = map_tensor(F_i, dim: 2)
+  let pi = x => x.at(0).at(n - 1)
+  let labels = range(1, n + 1).map(i => [#i])
   mapcode-viz(
-    rho, F(inst_dimvecs), pi(inst_dimvecs),
-    I_h: I_h,
-    X_h: x_h,
-    F_name: [$F_(w,v)$],
-    pi_name: [$\pi_(w,v,C)$],
-    group-size: calc.min(3, inst_dimvecs.len()),
-    cell-size: 60mm, scale-fig: 75%
-  )(inst_dimvecs)
-}$)
+    rho,
+    F,
+    pi,
+    I_h: p => [$p = (#p.map(str).join(", "))$],
+    X_h: (x, diff_mask: none) => table-view(
+      x,
+      diff_mask,
+      row-labels: labels,
+      col-labels: labels,
+      corner: [$i backslash j$],
+      shade: (r, c) => r > c,
+      width: 3.2em,
+    ),
+    F_name: [$F_p$],
+    pi_name: [$mpi_#n$],
+    group-size: 2,
+    spacing: (8mm, 10mm),
+  )(p)
+}
 
+#let inst = (10, 20, 30, 40, 50)
+#figure(
+  caption: [Matrix chain multiplication via mapcode for $p = (#inst.map(str).join(", "))$.],
+  mcm-mc(inst),
+)
+#legend

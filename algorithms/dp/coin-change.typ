@@ -1,131 +1,85 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
-== Coin Change (dynamic programming, mapcode)
+== Coin Change
+#set math.equation(numbering: none)
 
-Compute the minimum number of coins needed to make a given amount using a given set of coin denominations. Each coin can be used multiple times.
+Given a set $C$ of coin denominations (each usable any number of times) and an amount $a$, compute
+the fewest coins that add up to $a$, or $-1$ if $a$ cannot be made at all
+(#link("https://leetcode.com/problems/coin-change/")[LeetCode 322]).
 
-Formal definition:
+Formal definition: let $"mc"(i)$ be the fewest coins making $i$, with $"mc"(i) = infinity$ when
+$i$ is unreachable and $min emptyset = infinity$.
 $
-"MinCoins"(a) = cases(
-  0 & "if " a = 0,
-  1 + min_(c in "coins", c <= a) "MinCoins"(a - c) & "if " a > 0
-)
+  "mc"(i) & = cases(
+              0 & "if " i = 0,
+              1 + min_(c in C, c <= i) "mc"(i - c) & "if " i > 0
+            ) \
+  "coins"(C, a) & = cases("mc"(a) & "if " "mc"(a) < infinity, -1 & "otherwise")
 $
+
+Examples:
+- $"coins"({1, 2, 5}, 11) -> 3$ ($5 + 5 + 1$)
+- $"coins"({3, 5}, 11) -> 3$ ($5 + 3 + 3$)
+- $"coins"({3, 5}, 7) -> -1$
+- $"coins"({2}, 0) -> 0$
 
 *As mapcode:*
 
-_primitives_: `min`, `add`($+$), `leq`($<=$)
+_primitives_: `min`, `sum`($+$) and `leq`($<=$) are strict; $1 + infinity = infinity$ and
+$min emptyset = infinity$.
 
 $
-I = a:NN times "coins":[NN]^k quad quad quad
-X_a & = [0..a] -> NN union {infinity}_bot quad quad quad
-A = NN union {infinity}\
-rho(a, "coins") & = { i -> bot | i in {0 dots a}} \
-F_("coins")(x_i) & = cases(
+  I = C : 2^NN times a : NN quad quad X_a = [0..a] -> (NN union {infinity})_bot quad quad
+  A = NN union {-1} \
+  rho(C, a) = {i -> bot | i in [0..a]} \
+  F_C (x)_i = cases(
     0 & "if " i = 0,
-    1 + min_(c in "coins", c <= i) x_(i - c) & "if " i > 0 "and all deps met",
-    infinity & "if " i > 0 "and no coin works"
-  )\
-pi_a (x) & = x_a
+    bot & "if " i > 0 " and " x_(i-c) = bot " for some " c in C", " c <= i,
+    1 + min_(c in C, c <= i) x_(i-c) & "otherwise"
+  ) \
+  pi_a (x) = cases(x_a & "if " x_a < infinity, -1 & "if " x_a = infinity)
 $
 
-#let inst_amount = 13;
-#let inst_coins = (1, 4, 6);
+Cells with no coin $c <= i$ (here $1$ and $2$) are settled to $infinity$ in the first step together
+with cell $0$; every other cell is settled one step after the last cell it looks back to.
+
+#let coin-mc(C, a, wrap: 6, group-size: 3) = {
+  let rho = ((C, a)) => range(a + 1).map(_ => none)
+  let F_i = x => ((i,)) => {
+    if i == 0 { return 0 }
+    let deps = C.filter(c => c <= i).map(c => x.at(i - c))
+    if deps.any(d => d == none) { none } else { 1 + calc.min(calc.inf, ..deps) }
+  }
+  let F = map_tensor(F_i, dim: 1)
+  let pi = x => if x.at(a) == calc.inf { -1 } else { x.at(a) }
+  let I_h = ((C, a)) => [$C = {#C.map(str).join(", ")}, quad a = #a$]
+  let A_h = v => text(fill: if v < 0 { c-bad } else { black })[$#v$]
+  mapcode-viz(
+    rho,
+    F,
+    pi,
+    I_h: I_h,
+    A_h: A_h,
+    X_h: (x, diff_mask: none) => vec-view(x, diff_mask, wrap: wrap),
+    F_name: [$F_C$],
+    pi_name: [$mpi_#a$],
+    group-size: group-size,
+    spacing: (12mm, 10mm),
+  )((C, a))
+}
 
 #figure(
-  caption: [Coin Change DP array for amount = #inst_amount, coins = #inst_coins.],
-$#{
-  let rho = ((inst_amount, inst_coins)) => {
-    let x = ()
-    for i in range(0, inst_amount + 1) {
-      x.push(none)
-    }
-    x
-  }
+  caption: [Coin change via mapcode for $C = {3, 5}$ and $a = 11$; $infinity$ marks unreachable amounts.],
+  coin-mc((3, 5), 11),
+)
+#legend
 
-  let F_i = ((coins,)) => (x) => ((i,)) => {
-    if i == 0 {
-      0
-    } else {
-      // Check if all dependencies are met
-      let all_deps_met = true
-      for coin in coins {
-        if i >= coin and x.at(i - coin) == none {
-          all_deps_met = false
-        }
-      }
+The same coins cannot make $a = 7$: the table reaches its fixed point with $x_7 = infinity$, so
+$pi$ returns $-1$.
 
-      if all_deps_met {
-        // Compute minimum
-        let min_val = calc.inf
-        for coin in coins {
-          if i >= coin {
-            let dep_val = x.at(i - coin)
-            if dep_val != calc.inf {
-              min_val = calc.min(min_val, 1 + dep_val)
-            }
-          }
-        }
-        min_val
-      } else {
-        none
-      }
-    }
-  }
-
-  let F = ((coins,)) => map_tensor(F_i((coins,)), dim: 1)
-
-  let pi = ((amount,)) => (x) => x.at(amount)
-
-  let I_h((inst_amount, inst_coins)) = {
-    [
-      $a: #inst_amount$,
-      $"coins": vec(..#inst_coins.map(c => [#c]), delim: "[")_(#inst_coins.len())$,
-    ]
-  }
-
-  // visualization: 1D array as vertical table (index in left column, value in right column)
-  let x_h(x, diff_mask:none) = {
-    set text(weight: "bold")
-    let rows = ()
-
-    // Each row contains: [index, value]
-    for i in range(0, x.len()) {
-      let row = ()
-      
-      // Column 1: index (orange header)
-      row.push(rect(fill: orange.transparentize(70%), inset: 4pt)[$#i$])
-      
-      // Column 2: value
-      let val = if x.at(i) == none {
-        [$bot$]
-      } else if x.at(i) == calc.inf {
-        [$infinity$]
-      } else {
-        [$#x.at(i)$]
-      }
-      
-      if diff_mask != none and diff_mask.at(i) {
-        row.push(rect(stroke: gray, fill: yellow.transparentize(70%), inset: 4pt)[$#val$])
-      } else {
-        row.push(rect(stroke: gray, inset: 4pt)[$#val$])
-      }
-      
-      rows.push(grid(columns: 2 * (20pt,), rows: 16pt, align: center + horizon, ..row))
-    }
-
-    grid(align: center, ..rows)
-  }
-
-  mapcode-viz(
-    rho, F((inst_coins,)), pi((inst_amount,)),
-    I_h: I_h,
-    X_h: x_h,
-    F_name: [$F_("coins")$],
-    pi_name: [$\pi_(#inst_amount)$],
-    group-size: 5,
-    cell-size: 30mm, scale-fig: 75%
-  )((inst_amount, inst_coins))
-}$)
-
+#figure(
+  caption: [Coin change via mapcode for $C = {3, 5}$ and $a = 7$ (unreachable).],
+  coin-mc((3, 5), 7, wrap: 4),
+)
