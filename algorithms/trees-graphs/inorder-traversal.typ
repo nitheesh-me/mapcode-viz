@@ -1,144 +1,94 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
-== Inorder Traversal of Binary Tree
+== Inorder Traversal of a Binary Tree
 #set math.equation(numbering: none)
 
-Perform an inorder traversal of a binary tree, returning the sequence of node values visited in the order: left subtree, root, right subtree.
+List the values of a binary tree in inorder: first the left subtree, then the root, then the
+right subtree.
 
-Formal definition:
+Formal definition, for a node $i$ with value $v_i$ and (possibly empty) subtrees $l_i$, $r_i$:
 $
-"inorder"(i) = cases(
-  [v_i] & "if " i "is leaf",
-  "inorder"("left"(i)) + [v_i] + "inorder"("right"(i)) & "otherwise"
-)
+  "inorder"("nil") & = [], \
+  "inorder"(i) & = "inorder"(l_i) + [v_i] + "inorder"(r_i)
 $
+where $+$ is list concatenation.
 
-where $v_i$ is the value at node $i$, and $+$ denotes list concatenation.
-
-Example:
-
-```
-       4
-      / \
-     2   6
-    / \ / \
-   1  3 5  7
-```
-
-Result: $[1, 2, 3, 4, 5, 6, 7]$
+Examples:
+- a single node $5$ gives $[5]$
+- the complete binary search tree on $1, dots, 7$ (root $4$) gives $[1, 2, 3, 4, 5, 6, 7]$
 
 *As mapcode:*
 
-_primitives_: `list concatenation` ($+$) is strict. i.e., concatenation with $bot$ is undefined.
+_primitives_: concatenation ($+$) is strict, i.e. $bot + ell = ell + bot = bot$.
+
+The tree is an array of nodes $T_i = (v_i, l_i, r_i)$ with $l_i, r_i in [0..n) union {"nil"}$ and root $0$.
+For readability write $x_"nil" = []$.
 
 $
-I = "Tree represented as array" [(v_i, l_i, r_i)]_i quad quad quad
-X &= NN -> (ZZ^* union {bot}) quad quad quad
-A = ZZ^*\
-rho("Tree") &= {i -> bot | i in {0 dots |"Tree"|-1}}\
-F(x_i) &= cases(
-  [v_i] & "if " l_i = "None" and r_i = "None",
-  x_(l_i) + [v_i] + x_(r_i) & "otherwise"
-)\
-pi(x) &= x_0 quad "(" "root's inorder sequence" ")"
+  I = (ZZ times [0..n)_"nil" times [0..n)_"nil")^n quad quad X_T = [0..n) -> (ZZ^*)_bot quad quad A = ZZ^* \
+  rho(T) = {i -> bot | i in [0..n)} \
+  F_T (x)_i = x_(l_i) + [v_i] + x_(r_i) \
+  pi(x) = x_0
 $
 
-where each tree node $i$ has value $v_i$, left child index $l_i$, and right child index $r_i$ (None if no child).
+A leaf is defined after one step; an inner node one step after both of its children. The
+traversal of the root therefore appears after (height $+ 1$) steps.
 
-#let inst_tree = (
-  (4, 1, 2),        // Node 0: value=4, left=1, right=2
-  (2, 3, 4),        // Node 1: value=2, left=3, right=4
-  (6, 5, 6),        // Node 2: value=6, left=5, right=6
-  (1, none, none),  // Node 3: value=1, leaf
-  (3, none, none),  // Node 4: value=3, leaf
-  (5, none, none),  // Node 5: value=5, leaf
-  (7, none, none)   // Node 6: value=7, leaf
-);
-
-#figure(
-  caption: [Inorder Traversal computation using mapcode for the binary tree shown above],
-$
-#{
-  let rho = (tree) => {
-    let x = ()
-    for i in range(0, tree.len()) {
-      x.push(none)
-    }
-    x
+#let inorder-mc(tree) = {
+  let sub = (x, c) => if c == none { () } else { x.at(c) }
+  let rho = T => range(T.len()).map(_ => none)
+  let F_i = T => x => ((i,)) => {
+    let (v, l, r) = T.at(i)
+    let (xl, xr) = (sub(x, l), sub(x, r))
+    if xl == none or xr == none { none } else { xl + (v,) + xr }
   }
-
-  let F_i = (tree) => (x) => ((i,)) => {
-    let node = tree.at(i)
-    let val = node.at(0)
-    let left_idx = node.at(1)
-    let right_idx = node.at(2)
-    
-    // Leaf node
-    if left_idx == none and right_idx == none {
-      (val,)
-    } else {
-      let left_list = if left_idx != none { x.at(left_idx) } else { () }
-      let right_list = if right_idx != none { x.at(right_idx) } else { () }
-      
-      // Check if dependencies are resolved
-      if left_idx != none and left_list == none {
-        return none
-      }
-      if right_idx != none and right_list == none {
-        return none
-      }
-      
-      // Concatenate: left + [val] + right
-      let result = ()
-      if left_list != none {
-        result = result + left_list
-      }
-      result = result + (val,)
-      if right_list != none {
-        result = result + right_list
-      }
-      result
-    }
-  }
-
-  let F = (tree) => map_tensor(F_i(tree), dim: 1)
-
-  let pi = (tree) => (x) => x.at(0)
-
-  let X_h = (x, diff_mask: none) => {
-    let cells = ()
-    for i in range(0, x.len()) {
-      let val = x.at(i)
-      let node_val = inst_tree.at(i).at(0)
-      
-      let content = if val != none {
-        $[#val.map(v => str(v)).join(", ")]$
-      } else {
-        $bot$
-      }
-      
-      if diff_mask != none and diff_mask.at(i) {
-        cells.push(rect(fill: yellow.transparentize(70%), inset: 3pt)[
-          #text(size: 8pt)[$"node"_#node_val$]: #content
-        ])
-      } else {
-        cells.push(rect(stroke: none, inset: 3pt)[
-          #text(size: 8pt)[$"node"_#node_val$]: #content
-        ])
-      }
-    }
-    stack(dir: ttb, spacing: 3pt, ..cells)
-  }
-
+  let F = T => map_tensor(F_i(T), dim: 1)
+  let pi = x => x.at(0)
+  let children = tree.map(((v, l, r)) => (l, r).filter(c => c != none))
+  let show-list = xs => if xs == none { botc } else { $[#xs.map(str).join(", ")]$ }
+  let draw = (x, mask) => tree-view(
+    children,
+    root: 0,
+    label: i => [#tree.at(i).at(0)],
+    node-fill: i => if mask-at(mask, i) { c-changed } else if x != none and x.at(i) != none { c-done } else {
+      white
+    },
+  )
+  let X_h = (x, diff_mask: none) => grid(
+    columns: 1,
+    align: center,
+    row-gutter: 4pt,
+    draw(x, diff_mask),
+    text(size: 0.8em)[$x_0 = #show-list(x.at(0))$],
+  )
   mapcode-viz(
-    rho, F(inst_tree), pi(inst_tree),
+    rho,
+    F(tree),
+    pi,
+    I_h: T => draw(none, none),
     X_h: X_h,
+    A_h: show-list,
     pi_name: [$mpi$],
-    group-size: 4,
-    cell-size: 35mm, scale-fig: 70%
-  )(inst_tree)
+    group-size: 2,
+    spacing: (12mm, 8mm),
+    node-shape: rect,
+  )(tree)
 }
-$
-)
 
+#let inst = (
+  (4, 1, 2), // node 0: value 4, children 1, 2
+  (2, 3, 4), // node 1
+  (6, 5, 6), // node 2
+  (1, none, none), // node 3: leaf
+  (3, none, none), // node 4: leaf
+  (5, none, none), // node 5: leaf
+  (7, none, none), // node 6: leaf
+)
+#figure(
+  caption: [Inorder traversal via mapcode; nodes show their values $v_i$. A green node $i$ has
+    its subtree list $x_i$ resolved; below each state is the root's list $x_0$.],
+  inorder-mc(inst),
+)
+#legend

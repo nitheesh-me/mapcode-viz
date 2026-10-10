@@ -1,180 +1,89 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Tree Height
+#set math.equation(numbering: none)
 
-Compute the height of a rooted tree. The height of a tree is the maximum distance from the root to any leaf node.
+Compute the height of a rooted tree: the number of edges on the longest path from the root down
+to a leaf.
 
 Formal definition:
 $
-"height"(v) = cases(
-  0 & "if " v "is a leaf",
-  1 + max_(c in "children"(v)) "height"(c) & "otherwise"
-)
+  "height"(v) = cases(
+    0 & "if " v "is a leaf",
+    1 + max_(c in "children"(v)) "height"(c) & "otherwise"
+  )
 $
 
-Example:
-```
-    0
-   / \
-  1   2
-     / \
-    3   4
-```
-- height(1) = 0 (leaf)
-- height(3) = 0 (leaf)
-- height(4) = 0 (leaf)
-- height(2) = 1 + max(0, 0) = 1
-- height(0) = 1 + max(0, 1) = 2
+Examples:
+- a single node has height $0$
+- a root with two leaf children has height $1$
+- a path of $k$ nodes has height $k - 1$
 
 *As mapcode:*
 
-_primitives_: `max`(max), `add`($+$)
+_primitives_: `max` and `add`($+$) are strict, i.e. they return $bot$ if any argument is $bot$.
 
-Let:
-- $"Node" = NN$ (node identifiers)
-- $"Children" = "Node" -> "Node"^*$ (adjacency list)
-- $"Heights" = "Node" -> NN_bot$ (height map)
+The tree on nodes $[0..n)$ is given by its children lists $C_v$, and $0$ is the root.
 
 $
-I & = "Children" \
-X & = "Heights" \
-A & = NN\
-
-rho("children") & = "heights" "where" "heights"[v] = bot quad forall v\
-
-F("heights") & = "heights"' "where for each node" v:\
-& "heights"'[v] = cases(
-    0 & "if" "children"[v] = emptyset,
-    1 + max_(c in "children"[v]) "heights"[c] & "if" forall c in "children"[v]: "heights"[c] != bot,
-    "heights"[v] & "otherwise (preserve old value)"
-)\
-
-pi("heights") & = "heights"[0] quad "(root is node 0)"
+  I = [0..n) -> [0..n)^* quad quad X_C = [0..n) -> NN_bot quad quad A = NN \
+  rho(C) = {v -> bot | v in [0..n)} \
+  F_C (x)_v = cases(
+    0 & "if " C_v = emptyset,
+    1 + max_(c in C_v) x_c & "otherwise"
+  ) \
+  pi(x) = x_0
 $
 
-#let inst_children = (
-  (1, 2),    // 0: root
-  (),        // 1: leaf
-  (3, 4),    // 2: branch
-  (),        // 3: leaf
-  (),        // 4: leaf
-);
+A leaf is defined after the first step. An inner node $v$ becomes defined one step after the last
+of its children, so after $k$ steps exactly the nodes of height $< k$ are known and the fixed point
+is reached after $"height"(0) + 1$ steps.
 
-#figure(
-  caption: [Tree height computation using mapcode],
-$
-#{
-  // rho: Initialize all heights to BOTTOM
-  let rho = (children) => {
-    let n = children.len()
-    let heights = ()
-    for i in range(0, n) {
-      heights.push(none)
+#let tree-height-mc(children) = {
+  let rho = C => range(C.len()).map(_ => none)
+  let F_v = C => x => ((v,)) => {
+    let cs = C.at(v)
+    if cs.len() == 0 { 0 } else {
+      let hs = cs.map(c => x.at(c))
+      if hs.any(h => h == none) { none } else { 1 + calc.max(..hs) }
     }
-    heights  // State is just the heights array
   }
-
-  // F_i: Compute height for node i
-  let F_i = (children) => (heights) => ((i,)) => {
-    let current = heights.at(i)
-    
-    // If already computed, keep it
-    if current != none {
-      return current
-    }
-    
-    // Get children of node i
-    let node_children = children.at(i)
-    
-    // Leaf node: height = 0
-    if node_children.len() == 0 {
-      return 0
-    }
-    
-    // Branch node: check if all children have known heights
-    let child_heights = ()
-    let all_known = true
-    for child in node_children {
-      let child_height = heights.at(child)
-      if child_height == none {
-        all_known = false
-        break
-      }
-      child_heights.push(child_height)
-    }
-    
-    // If all children heights are known, compute this node's height
-    if all_known and child_heights.len() > 0 {
-      return 1 + calc.max(..child_heights)
-    }
-    
-    // Otherwise, keep as BOTTOM
-    return none
-  }
-
-  let F = (children) => (heights) => {
-    map_tensor(F_i(children), dim: 1)(heights)
-  }
-
-  let pi = (heights) => {
-    heights.at(0)  // Return height of root (node 0)
-  }
-
-  // Visualization helper
-  let X_h = (heights, diff_mask: none) => {
-    let cells = heights.enumerate().map(((i, h)) => {
-      let val = if h != none {[$#h$]} else {[$bot$]}
-      let node_children = inst_children.at(i)
-      let children_str = if node_children.len() == 0 {
-        "(leaf)"
-      } else {
-        let child_list = node_children.map(c => str(c)).join(",")
-        "→{" + child_list + "}"
-      }
-      
-      if diff_mask != none and diff_mask.at(i) {
-        // changed element: highlight
-        rect(fill: yellow.transparentize(70%), inset: 2pt)[
-          $v_#i#text(size: 8pt)[#children_str]: #val$
-        ]
-      } else {
-        rect(stroke: none, inset: 2pt)[
-          $v_#i#text(size: 8pt)[#children_str]: #val$
-        ]
-      }
-    })
-    $vec(delim: "[", ..cells)$
-  }
-
-  // Tree visualization
-  let I_h = (children) => {
-    // Simple tree representation showing the structure
-    let nodes = children.enumerate().map(((i, c)) => {
-      if c.len() == 0 {
-        [$v_#i$ (leaf)]
-      } else {
-        let child_list = c.map(ch => [$v_#ch$]).join([, ])
-        [$v_#i -> {#child_list}$]
-      }
-    })
-    table(
-      columns: 1,
-      align: left,
-      stroke: none,
-      ..nodes
-    )
-  }
-
+  let F = C => map_tensor(F_v(C), dim: 1)
+  let pi = x => x.at(0)
+  let X_h = C => (x, diff_mask: none) => tree-view(
+    C,
+    root: 0,
+    radius: 0.45,
+    label: v => [#v: #show-val(x.at(v))],
+    node-fill: v => if mask-at(diff_mask, v) { c-changed } else if x.at(v) != none { c-done } else { white },
+  )
   mapcode-viz(
-    rho, F(inst_children), pi,
-    I_h: I_h,
-    X_h: X_h,
+    rho,
+    F(children),
+    pi,
+    I_h: C => tree-view(C, root: 0, radius: 0.45),
+    X_h: X_h(children),
     pi_name: [$mpi$],
-    group-size: calc.min(5, inst_children.len() + 1),
-    cell-size: 35mm,
-    scale-fig: 70%
-  )(inst_children)
+    group-size: 3,
+    spacing: (8mm, 10mm),
+    node-shape: rect,
+  )(children)
 }
-$
+
+#let inst = (
+  (1, 2), // 0: root
+  (3,), // 1
+  (4, 5), // 2
+  (), // 3: leaf
+  (6,), // 4
+  (), // 5: leaf
+  (), // 6: leaf
 )
+#figure(
+  caption: [Tree height via mapcode; node labels are "$v$: $x_v$". Green nodes are already
+    resolved.],
+  tree-height-mc(inst),
+)
+#legend

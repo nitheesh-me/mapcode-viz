@@ -1,164 +1,78 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
+#show link: underline
 
-== Leetcode:198. #link("https://leetcode.com/problems/house-robber/")[House Robber]
+== House Robber #link("https://leetcode.com/problems/house-robber/")[LeetCode P.198]
+#set math.equation(numbering: none)
 
-You are a professional robber planning to rob houses along a street. Each house has a certain amount of money stashed, the only constraint stopping you from robbing each of them is that adjacent houses have security systems connected and it will automatically contact the police if two adjacent houses were broken into on the same night.
+A robber plans to rob houses along a street; house $i$ holds an amount $h_i$ of money. Adjacent
+houses share an alarm system, so robbing two neighbouring houses on the same night alerts the
+police. Return the maximum amount that can be robbed without robbing two adjacent houses.
 
-Given an integer array `nums` representing the amount of money of each house, return the maximum amount of money you can rob tonight without alerting the police.
-
-=== Recurrence Relation
-
+Formal definition, for $h in NN^n$ and $"rob"(i)$ the best amount from houses $0, dots, i$:
 $
-"MaxRob"(i) = cases(
-  0 & "if" i < 0,
-  "money"[0] & "if" i = 0,
-  max("MaxRob"(i-1), "money"[i] + "MaxRob"(i-2)) & "if" i > 0
-)
-$
-
-*Example:* Houses = $[2, 7, 9, 3, 1]$ → Maximum: $12$ (rob houses $0, 2, 4$: $2+9+1$)
-
-*Constraints:*
-- $1 <= "nums"."length" <= 100$
-- $0 <= "nums"[i] <= 400$
-
-=== Recursion Analysis
-
-This exhibits non-trivial recursion through:
-1. *Two recursive branches*: Each decision depends on previous two states
-2. *Optimization problem*: Finding maximum over multiple possibilities
-3. *State dependency*: Current optimal depends on solutions to smaller subproblems
-4. *Linear DP with choice*: Classic example of decision-making in dynamic programming
-
-=== Mapcode Formalization
-
-*Primitives:* $max$, $+$
-
-$
-I &= "houses": NN^n \
-X &= [0..n-1] -> NN_bot \
-A &= NN \
-rho("houses") &= {i |-> bot | i in {0 dots n-1}} \
-F_("houses")(x)(i) &= cases(
-  "houses"[0] & "if" i = 0,
-  max(x[i-1], "houses"[i] + (x[i-2] "if" i >= 2 "else" 0)) & "if" x[i-1] != bot and (i < 2 or x[i-2] != bot),
-  bot & "otherwise"
-) \
-pi(x) &= x[n-1]
+  "rob"(i) = cases(
+    0 & "if " i < 0,
+    max("rob"(i-1), h_i + "rob"(i-2)) & "if " i >= 0
+  ) quad quad "answer" = "rob"(n-1)
 $
 
-=== Complexity Analysis
+Examples:
+- $h = [1, 2, 3, 1] -> 4$ (rob houses $0$ and $2$)
+- $h = [2, 7, 9, 3, 1] -> 12$ (rob houses $0, 2, 4$: $2 + 9 + 1$)
 
-- *Time Complexity*: $O(n)$ where $n$ is the number of houses
-- *Space Complexity*: $O(n)$ for storing intermediate results
+Constraints: $1 <= n <= 100$ and $0 <= h_i <= 400$.
 
-#let inst_houses = (2, 7, 9, 3, 1);
+*As mapcode:*
 
+_primitives_: `max` and `add`($+$) are strict, i.e. they return $bot$ if any argument is $bot$.
+
+$
+  I = NN^n quad quad X_h = [0..n) -> NN_bot quad quad A = NN \
+  rho(h) = {i -> bot | i in [0..n)} \
+  F_h (x)_i = cases(
+    h_0 & "if " i = 0,
+    max(x_0, h_1) & "if " i = 1,
+    max(x_(i-1), h_i + x_(i-2)) & "if " i >= 2
+  ) \
+  pi(x) = x_(n-1)
+$
+
+Cell $x_i$ chooses between skipping house $i$ (keep $x_(i-1)$) and robbing it (add $h_i$ to
+$x_(i-2)$). It becomes defined one step after $x_(i-1)$, so the table fills left to right and the
+fixed point is reached after $n$ steps.
+
+#let robber-mc(houses) = {
+  let n = houses.len()
+  let rho = h => range(h.len()).map(_ => none)
+  let F_i = h => x => ((i,)) => {
+    if i == 0 { h.at(0) } else if i == 1 {
+      if x.at(0) == none { none } else { calc.max(x.at(0), h.at(1)) }
+    } else if x.at(i - 1) == none or x.at(i - 2) == none { none } else {
+      calc.max(x.at(i - 1), h.at(i) + x.at(i - 2))
+    }
+  }
+  let F = h => map_tensor(F_i(h), dim: 1)
+  let pi = x => x.at(n - 1)
+  let labels = houses.map(v => [#v])
+  mapcode-viz(
+    rho,
+    F(houses),
+    pi,
+    I_h: h => vec-view(h, none),
+    X_h: (x, diff_mask: none) => vec-view(x, diff_mask, labels: labels, width: 2.2em),
+    pi_name: [$mpi$],
+    group-size: 3,
+    spacing: (8mm, 10mm),
+  )(houses)
+}
+
+#let inst = (2, 7, 9, 3, 1)
 #figure(
-  caption: [House Robber computation for houses $#inst_houses$ showing maximum robbery amount.],
-  $#{
-    let rho = (houses) => {
-      let n = houses.len()
-      let x = ()
-      for i in range(0, n) {
-        x.push(none)
-      }
-      x
-    }
-
-    let F_i = (houses) => (x) => ((i,)) => {
-      let n = houses.len()
-      
-      if i == 0 {
-        houses.at(0)
-      } else {
-        let skip = x.at(i - 1)
-        let take_prev2 = if i >= 2 { x.at(i - 2) } else { 0 }
-        
-        if skip == none or (i >= 2 and take_prev2 == none) {
-          none
-        } else {
-          let take = houses.at(i) + (if take_prev2 == none { 0 } else { take_prev2 })
-          calc.max(skip, take)
-        }
-      }
-    }
-
-    let F = (houses) => map_tensor(F_i(houses), dim: 1)
-
-    let pi = (houses) => (x) => {
-      x.at(houses.len() - 1)
-    }
-
-    let x_h(x, diff_mask: none) = {
-      set text(size: 9pt)
-      let rows = ()
-      
-      let header = ()
-      let values = ()
-      
-      for i in range(0, x.len()) {
-        header.push(rect(fill: blue.transparentize(85%), inset: 4pt, stroke: 0.5pt)[*House #i*])
-        
-        let val = x.at(i)
-        let display = if val == none { $bot$ } else { str(val) }
-        
-        let cell_fill = if diff_mask != none and diff_mask.at(i) {
-          yellow.transparentize(60%)
-        } else {
-          none
-        }
-        
-        values.push(rect(stroke: 0.5pt + gray, fill: cell_fill, inset: 4pt)[#display])
-      }
-      
-      rows.push(grid(columns: x.len() * (auto,), rows: auto, align: center + horizon, column-gutter: 2pt, ..header))
-      rows.push(grid(columns: x.len() * (auto,), rows: auto, align: center + horizon, column-gutter: 2pt, ..values))
-      stack(dir: ttb, spacing: 2pt, ..rows)
-    }
-
-    let I_h = (houses) => {
-      let house_display = houses.enumerate().map(((i, m)) => [House #i: $#m$])
-      stack(
-        dir: ttb,
-        spacing: 2pt,
-        [*Houses with money:*],
-        ..house_display
-      )
-    }
-
-    let A_h = (a) => {
-      box(fill: green.transparentize(70%), inset: 8pt, radius: 4pt)[
-        *Maximum Amount:* $#a$
-      ]
-    }
-
-    mapcode-viz(
-      rho, F(inst_houses), pi(inst_houses),
-      I_h: I_h,
-      X_h: x_h,
-      A_h: A_h,
-      F_name: [$F_("houses")$],
-      pi_name: [$mpi (#(inst_houses.len() - 1))$],
-      group-size: 1,
-      cell-size: 10mm,
-      scale-fig: 90%
-    )(inst_houses)
-  }$
+  caption: [House robber via mapcode for $h = [2, 7, 9, 3, 1]$. The grey label above cell $x_i$ is
+    the money $h_i$ in house $i$.],
+  robber-mc(inst),
 )
-
-=== Trace Analysis
-
-At each house $i$, we decide:
-1. *Skip house $i$*: Take maximum from previous house: $x[i-1]$
-2. *Rob house $i$*: Add current money to maximum from $i-2$: $"houses"[i] + x[i-2]$
-3. *Choose maximum*: $max("skip", "rob")$
-
-For $[2, 7, 9, 3, 1]$:
-- House 0: Rob = $2$
-- House 1: Max(2, 7) = $7$
-- House 2: Max(7, 9+2) = $11$
-- House 3: Max(11, 3+7) = $11$
-- House 4: Max(11, 1+11) = $12$ which is maximum and correct
+#legend

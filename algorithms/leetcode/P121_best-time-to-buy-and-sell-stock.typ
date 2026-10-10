@@ -1,316 +1,126 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 #show link: underline
 
 == Best Time to Buy and Sell Stock #link("https://leetcode.com/problems/best-time-to-buy-and-sell-stock")[LeetCode P.121]
+#set math.equation(numbering: none)
 
-You are given an array `prices` where `prices[i]` is the price of a given stock on the `i`-th day.
+You are given an array $p$ where $p_i$ is the price of a stock on day $i$. Choose one day to buy
+and a later day to sell, maximising the profit. Return the maximum profit, or $0$ if no
+transaction makes a profit.
 
-You want to maximize your profit by choosing a single day to buy one stock and choosing a different day in the future to sell that stock.
-
-Return the maximum profit you can achieve from this transaction. If you cannot achieve any profit, return `0`.
-
-_Example 1_:
-/ Input: $"prices" = [7,1,5,3,6,4]$
-/ Output: $5$
-/ Explanation: Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 6-1 = 5.
-
-_Example 2_:
-/ Input: $"prices" = [7,6,4,3,1]$
-/ Output: $0$
-/ Explanation: In this case, no transactions are done and the max profit = 0.
-
-Constraints:
-- $1 <= |"prices"| <= 10^5$
-- $0 <= "prices"[i] <= 10^4$
-
-*Mapcode Formalization:*
-
-_primitives_: `max`(max), `subtract`($-$)
-
-The recursion represents choices at each day: skip the day, or buy/sell depending on state.
-
-#set text(size: 9.5pt)
+Formal definition, for $p in NN^n$:
 $
-n = |"prices"| quad "prices" in NN^n\
-I : "prices" in NN^n\
-X_("prices") & : [0..n] times {"bought", "not_bought"} -> NN_bot\
-A & : NN "maximum profit"\
-\
-rho("prices") & = { (i, b) -> bot | i in {0 dots n}, b in {"bought", "not_bought"}}\
-$
-#set text(size: 8.5pt)
-$
-F_("prices") (x_(i,b)) & = cases(
-    0 & "if " i = n,
-    max(x_(i+1,"bought"), "prices"_i) & "if " b = "bought" and x_(i+1,"bought") != bot,
-    max(x_(i+1,"not_bought"), x_(i+1,"bought") - "prices"_i) & "if " b = "not_bought" "and" x_(i+1,"bought") != bot "and" x_(i+1,"not_bought") != bot,
-    bot & "otherwise"
-  )\
-$
-#set text(size: 9.5pt)
-$
-pi_("prices") (x) & = x_(0,"not_bought")
+  "profit"(p) = max(0, max_(0 <= i < j < n) p_j - p_i)
 $
 
-The recursion fills the table backwards from day $n$ to day $0$:
-- At the end (day $n$), profit is 0
-- If already bought: either skip this day or sell at current price
-- If not bought: either skip this day or buy at current price (subtracts from future profit)
+Examples (days are numbered from $0$):
+- $p = [7, 1, 5, 3, 6, 4] -> 5$: buy on day $1$ (price $1$), sell on day $4$ (price $6$)
+- $p = [7, 6, 4, 3, 1] -> 0$: prices only fall, so no transaction is made
 
-#let inst_prices = (7, 1, 5, 3, 6, 4);
-#let inst_n = inst_prices.len();
+Constraints: $1 <= n <= 10^5$ and $0 <= p_i <= 10^4$.
 
-#figure(
-  caption: [Best Time to Buy and Sell Stock using \ mapcode for $"prices" = #inst_prices$; state table showing \ maximum profit achievable from each day in each state.],
-  gap: 3em,
-$#{
-  // Input visualization: display the input array
-  let I_h = (prices) => {
-    text(repr(prices))
-  }
+*As mapcode:*
 
-  // Output visualization: display the final profit
-  let A_h = (profit) => {
-    text(str(profit))
-  }
+_primitives_: `max` and `sub`($-$) are strict, i.e. they return $bot$ if any argument is $bot$.
 
-  let rho = (prices) => {
-    let n = prices.len()
-    let x = ()
-    // States: (day, bought_status)
-    // We need n+1 days (0 to n)
-    // The 'bought' state represents the maximum possible selling price from this day forward.
-    for i in range(0, n + 1) {
-      x.push((none, none))  // (bought, not_bought)
-    }
-    x
-  }
+Scan the days backwards. Cell $i$ holds a pair $(m_i, q_i)$:
+- $m_i$ is the highest price on day $i$ or later, i.e. the best price at which a stock bought
+  before day $i$ can still be sold ($m_n = 0$: nothing left to sell on);
+- $q_i$ is the best profit from buying and selling within days $i, dots, n - 1$.
 
-    let F_i = (prices) => (x) => ((i,)) => {
-    let n = prices.len()
-    let (bought, not_bought) = x.at(i)
-    
-    if i == n {
-      // Base case: at end, profit is 0
-      (0, 0)
-    } else if i < n {
-      let (next_bought, next_not_bought) = x.at(i + 1)
-      
-      let new_bought = none
-      let new_not_bought = none
-      
-      // If already bought: can sell at current price or skip
-      if next_bought != none {
-        let skip = next_bought
-        let sell = prices.at(i)  // Selling gives us the price directly
-        new_bought = calc.max(skip, sell)
-      }
-      
-      // If not bought: can buy at current price (subtracting cost) or skip
-      if next_bought != none and next_not_bought != none {
-        let skip = next_not_bought
-        let buy = next_bought - prices.at(i)  // Buying: future profit minus cost
-        new_not_bought = calc.max(skip, buy)
-      }
-      
-      (new_bought, new_not_bought)
-    } else {
-      (bought, not_bought)
+Buying on day $i$ and selling at the best later price earns $m_(i+1) - p_i$.
+
+$
+  I = NN^n quad quad X_p = [0..n] -> (NN times NN)_bot quad quad A = NN \
+  rho(p) = {i -> bot | i in [0..n]} \
+  F_p (x)_i = cases(
+    (0, 0) & "if " i = n,
+    (max(m_(i+1), p_i), thin max(q_(i+1), m_(i+1) - p_i)) & "if " i < n "where" (m_(i+1), q_(i+1)) = x_(i+1)
+  ) \
+  pi(x) = q_0 quad "where" (m_0, q_0) = x_0
+$
+
+Cell $n$ is set in the first step and every cell $i$ one step after cell $i+1$, so the table
+fills right to left and reaches its fixed point after $n + 1$ steps.
+
+#let stock-mc(prices) = {
+  let n = prices.len()
+  let rho = p => range(p.len() + 1).map(_ => none)
+  let F_i = p => x => ((i,)) => {
+    if i == n { (0, 0) } else if x.at(i + 1) == none { none } else {
+      let (m, q) = x.at(i + 1)
+      (calc.max(m, p.at(i)), calc.max(q, m - p.at(i)))
     }
   }
-  
-  let F = (prices) => map_tensor(F_i(prices), dim: 1)
-
-  let pi = (prices) => (x) => {
-    // Start from day 0, not bought state
-    let (_, not_bought) = x.at(0)
-    not_bought
-  }
-
-  // Visualization helper
-  let x_h(x, diff_mask: none) = {
-    set text(weight: "bold", size: 8pt)
-    let n = x.len()
-    let rows = ()
-    
-    // Header
-    let header = ()
-    header.push(rect(fill: purple.transparentize(70%), inset: 5pt, stroke: gray)[Day])
-    header.push(rect(fill: orange.transparentize(70%), inset: 5pt, stroke: gray)[Price])
-    header.push(rect(fill: teal.transparentize(70%), inset: 5pt, stroke: gray)[Bought])
-    header.push(rect(fill: green.transparentize(70%), inset: 5pt, stroke: gray)[Not Bought])
-    rows.push(grid(columns: (35pt, 35pt, 45pt, 55pt), rows: 20pt, align: center + horizon, ..header))
-    
-    for i in range(0, n) {
-      let row = ()
-      let (bought, not_bought) = x.at(i)
-      
-      // Day number
-      row.push(rect(fill: purple.transparentize(80%), inset: 5pt, stroke: gray)[$#i$])
-      
-      // Price (if not at end)
-      if i < inst_prices.len() {
-        row.push(rect(inset: 5pt, stroke: gray)[$#inst_prices.at(i)$])
-      } else {
-        row.push(rect(inset: 5pt, stroke: gray)[$-$])
-      }
-      
-      // Bought state
-      let bought_val = if bought != none {[$#bought$]} else {[$bot$]}
-      if diff_mask != none and diff_mask.at(i).at(0) {
-        row.push(rect(stroke: gray, fill: yellow.transparentize(50%), inset: 5pt)[$#bought_val$])
-      } else {
-        row.push(rect(stroke: gray, inset: 5pt)[$#bought_val$])
-      }
-      
-      // Not bought state
-      let not_bought_val = if not_bought != none {[$#not_bought$]} else {[$bot$]}
-      if diff_mask != none and diff_mask.at(i).at(1) {
-        row.push(rect(stroke: gray, fill: yellow.transparentize(50%), inset: 5pt)[$#not_bought_val$])
-      } else {
-        row.push(rect(stroke: gray, inset: 5pt)[$#not_bought_val$])
-      }
-      
-      rows.push(grid(columns: (35pt, 35pt, 45pt, 55pt), rows: 20pt, align: center + horizon, ..row))
-    }
-    
-    grid(align: center, ..rows)
-  }
-
+  let F = p => map_tensor(F_i(p), dim: 1)
+  let pi = x => x.at(0).at(1)
+  let get = (x, i, k) => if x.at(i) == none { none } else { x.at(i).at(k) }
+  let X_h = (x, diff_mask: none) => table-view(
+    (
+      prices + (none,),
+      range(n + 1).map(i => get(x, i, 0)),
+      range(n + 1).map(i => get(x, i, 1)),
+    ),
+    (
+      range(n + 1).map(_ => false),
+      range(n + 1).map(i => mask-at(diff_mask, i, 0)),
+      range(n + 1).map(i => mask-at(diff_mask, i, 1)),
+    ),
+    row-labels: ($p_i$, $m_i$, $q_i$),
+    col-labels: range(n + 1).map(i => [#i]),
+    corner: $i$,
+    shade: (r, i) => r == 0 and i == n,
+  )
   mapcode-viz(
-    rho, F(inst_prices), pi(inst_prices),
-    I_h: I_h,
-    X_h: x_h,
-    A_h: A_h,
+    rho,
+    F(prices),
+    pi,
+    I_h: p => vec-view(p, none),
+    X_h: X_h,
     pi_name: [$mpi$],
     group-size: 2,
-    cell-size: 90mm, 
-    scale-fig: 60%
-  )(inst_prices)
-}$)
+    spacing: (10mm, 8mm),
+    node-shape: rect,
+  )(prices)
+}
 
-#pagebreak()
-
-=== Additional Test Cases
-
-#let test_cases = ((7, 6, 4, 3, 1), (2, 4, 1), (3, 3, 5, 0, 0, 3, 1, 4))
-
-#for test_prices in test_cases [
-  #let test_n = test_prices.len()
-  #figure(
-    caption: [Best Time to Buy/Sell Stock for \ $"prices" = #test_prices$],
-    gap: 4.5em,
-  $#{
-    let I_h = (prices) => {
-      text(repr(prices))
+// Price chart with the optimal buy and sell days (for illustration only).
+#let stock-chart(prices) = {
+  let n = prices.len()
+  let (best, buy, sell) = (0, none, none)
+  for i in range(n) {
+    for j in range(i + 1, n) {
+      if prices.at(j) - prices.at(i) > best { (best, buy, sell) = (prices.at(j) - prices.at(i), i, j) }
     }
+  }
+  lq.diagram(
+    width: 7cm,
+    height: 3.5cm,
+    xlabel: [day $i$],
+    ylabel: [price $p_i$],
+    legend: (position: bottom + right),
+    lq.plot(range(n), prices, color: luma(110), mark-size: 3pt),
+    ..if buy != none {
+      (
+        lq.scatter((buy,), (prices.at(buy),), color: c-good, size: 7pt, label: [buy]),
+        lq.scatter((sell,), (prices.at(sell),), color: c-bad, size: 7pt, label: [sell]),
+      )
+    },
+  )
+}
 
-    let A_h = (profit) => {
-      text(str(profit))
-    }
+#let inst = (7, 1, 5, 3, 6, 4)
+#figure(
+  caption: [Prices $p = [7, 1, 5, 3, 6, 4]$ with the optimal buy (day $1$) and sell (day $4$).],
+  stock-chart(inst),
+)
 
-    let rho = (prices) => {
-      let n = prices.len()
-      let x = ()
-      // The 'bought' state represents the maximum possible selling price from this day forward.
-      for i in range(0, n + 1) {
-        x.push((none, none))
-      }
-      x
-    }
-
-    let F_i = (prices) => (x) => ((i,)) => {
-      let n = prices.len()
-      let (bought, not_bought) = x.at(i)
-      
-      if i == n {
-        (0, 0)
-      } else if i < n {
-        let (next_bought, next_not_bought) = x.at(i + 1)
-        
-        let new_bought = none
-        let new_not_bought = none
-        
-        if next_bought != none {
-          let skip = next_bought
-          let sell = prices.at(i)
-          new_bought = calc.max(skip, sell)
-        }
-        
-        if next_bought != none and next_not_bought != none {
-          let skip = next_not_bought
-          let buy = next_bought - prices.at(i)
-          new_not_bought = calc.max(skip, buy)
-        }
-        
-        (new_bought, new_not_bought)
-      } else {
-        (bought, not_bought)
-      }
-    }
-    
-    let F = (prices) => map_tensor(F_i(prices), dim: 1)
-
-    let pi = (prices) => (x) => {
-      let (_, not_bought) = x.at(0)
-      not_bought
-    }
-
-    let x_h(x, diff_mask: none) = {
-      set text(weight: "bold", size: 8pt)
-      let n = x.len()
-      let rows = ()
-      
-      let header = ()
-      header.push(rect(fill: purple.transparentize(70%), inset: 5pt, stroke: gray)[Day])
-      header.push(rect(fill: orange.transparentize(70%), inset: 5pt, stroke: gray)[Price])
-      header.push(rect(fill: teal.transparentize(70%), inset: 5pt, stroke: gray)[Bought])
-      header.push(rect(fill: green.transparentize(70%), inset: 5pt, stroke: gray)[Not Bought])
-      rows.push(grid(columns: (35pt, 35pt, 45pt, 55pt), rows: 20pt, align: center + horizon, ..header))
-      
-      for i in range(0, n) {
-        let row = ()
-        let (bought, not_bought) = x.at(i)
-        
-        row.push(rect(fill: purple.transparentize(80%), inset: 5pt, stroke: gray)[$#i$])
-        
-        if i < test_prices.len() {
-          row.push(rect(inset: 5pt, stroke: gray)[$#test_prices.at(i)$])
-        } else {
-          row.push(rect(inset: 5pt, stroke: gray)[$-$])
-        }
-        
-        let bought_val = if bought != none {[$#bought$]} else {[$bot$]}
-        if diff_mask != none and diff_mask.at(i).at(0) {
-          row.push(rect(stroke: gray, fill: yellow.transparentize(50%), inset: 5pt)[$#bought_val$])
-        } else {
-          row.push(rect(stroke: gray, inset: 5pt)[$#bought_val$])
-        }
-        
-        let not_bought_val = if not_bought != none {[$#not_bought$]} else {[$bot$]}
-        if diff_mask != none and diff_mask.at(i).at(1) {
-          row.push(rect(stroke: gray, fill: yellow.transparentize(50%), inset: 5pt)[$#not_bought_val$])
-        } else {
-          row.push(rect(stroke: gray, inset: 5pt)[$#not_bought_val$])
-        }
-        
-        rows.push(grid(columns: (35pt, 35pt, 45pt, 55pt), rows: 20pt, align: center + horizon, ..row))
-      }
-      
-      grid(align: center, ..rows)
-    }
-
-    mapcode-viz(
-      rho, F(test_prices), pi(test_prices),
-      I_h: I_h,
-      X_h: x_h,
-      A_h: A_h,
-      pi_name: [$mpi$],
-      group-size: 2,
-      cell-size: 80mm, 
-      scale-fig: 55%
-    )(test_prices)
-  }$)
-]
+#figure(
+  caption: [Best time to buy and sell stock via mapcode for $p = [7, 1, 5, 3, 6, 4]$. Row $m_i$ is the
+    highest price from day $i$ on, row $q_i$ the best profit from day $i$ on.],
+  stock-mc(inst),
+)
+#legend
