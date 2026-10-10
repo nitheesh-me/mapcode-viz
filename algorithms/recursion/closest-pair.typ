@@ -1,216 +1,150 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Closest Pair of Points
 #set math.equation(numbering: none)
 
-Compute the minimum Euclidean distance between any two points in a given set of 2D points.
+Compute the minimum Euclidean distance between any two of $n >= 2$ points in the plane.
 
-Formal definition (Divide and Conquer):
-Let $P_x$ be the list of points sorted by x-coordinate.
-Let $f(i, j)$ be the minimum squared distance in the slice $P_x[i..j]$.
-
+Formal definition (divide and conquer): let $P_x$ be the points sorted by $x$-coordinate and let
+$f(i, j)$ be the minimum _squared_ distance between two points of the slice $P_x [i..j]$, $i < j$.
 $
-f(i, j) = cases(
-  "brute_force_sq"(P_x[i..j]) & "if " j - i + 1 <= 3,
-  min(f(i, k), f(k+1, j), delta_"strip_sq") & "if " j - i + 1 > 3
-)
+  f(i, j) = cases(
+    min_(i <= p < q <= j) d^2(P_x [p], P_x [q]) & "if " j - i + 1 <= 3,
+    min(f(i, k), f(k+1, j), delta^2_"strip") & "if " j - i + 1 > 3
+  )
 $
-where $k = floor((i + j) / 2)$, and $delta_"strip_sq"$ is the minimum squared distance found in the vertical strip.
+where $k = floor((i + j) / 2)$, $delta^2 = min(f(i, k), f(k+1, j))$ and $delta^2_"strip"$ is the
+smallest squared distance between two points of $P_x [i..j]$ whose $x$-coordinates lie within
+$delta$ of the split line $x = P_x [k].x$. The answer is $sqrt(f(0, n-1))$.
 
 Example:
-- $P = {(2, 3), (5, 1), (3, 4)} -> "dist" = sqrt(2) approx 1.414$ (between (2,3) and (3,4))
+- $P = {(2, 3), (5, 1), (3, 4)} -> sqrt(2) approx 1.414$, between $(2, 3)$ and $(3, 4)$
 
 *As mapcode:*
 
-_primitives_: `min`, `sqrt`, `abs`, `dist`
+_primitives_: `min`, squared distance $d^2$ (strict), and `sqrt` in $pi$ only.
 
 $
-// I is a list of points P. Let n = |P|.
-// P_x is the static, pre-sorted list of points.
-// X[i, j] stores f(i, j), the min *squared* dist in P_x[i..j]
-I = P:"List"["Point"] quad quad
-X_n & = [0..n-1] times [0..n-1] -> RR_bot quad quad
-A = RR\
-
-rho(P) & = { (i,j) -> bot | 0 <= i < n, 0 <= j < n} \
-
-// F depends on the pre-sorted list P_x
-F_(P_x)(x_(i,j)) & = cases(
-    "brute_force_sq"(P_x[i..j]) & "if " j - i + 1 <= 3,
-    min(x_(i, k), x_(k+1, j), delta_"strip_sq") & "if " j - i + 1 > 3 " and " x_(i,k) != bot, x_(k+1,j) != bot
-  )\
-
-pi_P (x) & = "sqrt"(x_(0, n-1)) quad quad "where" n = |P|
+  I = "List"[ZZ^2] quad quad X_n = {(i, j) | 0 <= i < j < n} -> NN_bot quad quad A = RR \
+  rho(P) = {(i, j) -> bot | 0 <= i < j < n} \
+  F_(P_x)(x)_(i,j) = cases(
+    min_(i <= p < q <= j) d^2(P_x [p], P_x [q]) & "if " j - i + 1 <= 3,
+    min(x_(i,k), x_(k+1,j), delta^2_"strip") & "if " j - i + 1 > 3 and x_(i,k) != bot and x_(k+1,j) != bot,
+    bot & "otherwise"
+  ) \
+  pi(x) = sqrt(x_(0, n-1))
 $
 
-// --- Visualization ---
-// Helper functions (from Python implementation)
-#let dist_sq = (p1, p2) => {
-  (p1.at(0) - p2.at(0))*(p1.at(0) - p2.at(0)) + (p1.at(1) - p2.at(1))*(p1.at(1) - p2.at(1))
-}
+The table stores squared distances, so $F$ stays in the integers; only $pi$ takes the square
+root. Slices of length $<= 3$ are filled in the first step, and a slice of length $L$ one step
+after its halves, so the fixed point is reached after about $log_2 (n \/ 3) + 2$ steps.
 
-#let brute_force_cpp = (points) => {
-  let min_d_sq = 1e100 // infinity
-  let n = points.len()
-  if n < 2 { return min_d_sq }
-  for i in range(n) {
-    for j in range(i + 1, n) {
-      let d_sq = dist_sq(points.at(i), points.at(j))
-      if d_sq < min_d_sq { min_d_sq = d_sq }
+#let dist2 = (p, q) => (p.at(0) - q.at(0)) * (p.at(0) - q.at(0)) + (p.at(1) - q.at(1)) * (p.at(1) - q.at(1))
+
+// (rho, F, pi) for a point list P; shared by the mapcode figure and the plot.
+#let closest-parts(P) = {
+  let Px = P.sorted(key: p => p.at(0))
+  let n = P.len()
+  let brute = pts => {
+    let best = calc.inf
+    for a in range(pts.len()) {
+      for b in range(a + 1, pts.len()) { best = calc.min(best, dist2(pts.at(a), pts.at(b))) }
     }
+    best
   }
-  min_d_sq
-}
-
-#let strip_closest = (strip, min_delta_sq) => {
-  let min_d_sq = min_delta_sq
-  let n = strip.len()
-  for i in range(n) {
-    for j in range(i + 1, n) {
-      let y_diff = strip.at(j).at(1) - strip.at(i).at(1)
-      if (y_diff * y_diff) >= min_d_sq { break }
-      
-      let d_sq = dist_sq(strip.at(i), strip.at(j))
-      if d_sq < min_d_sq { min_d_sq = d_sq }
-    }
-  }
-  min_d_sq
-}
-
-
-#let inst_P = ((2, 3), (1, 9), (4, 5), (5, 1), (2, 1), (3, 4), (7, 8), (2, 6), (8, 2), (6, 3), (1, 1), (2, 2), (3, 3));
-#let P_x_sorted = inst_P.sorted(key: p => p.at(0));
-#let inst_n = inst_P.len();
-
-#figure(
-  caption: [Closest Pair of Points computation using mapcode for $n = #inst_n$ points; dynamic-programming table visualization. The table $X[i, j]$ stores the minimum squared distance for points $P_x[i..j]$.],
-$
-#{
-  let rho = (P) => {
-    let n = P.len()
-    let x = ()
-    for i in range(n) {
-      let row = ()
-      for j in range(n) {
-        // We only care about (i, j) where j > i
-        row.push(none) 
+  let strip-min = (pts, mid-x, d2) => {
+    let strip = pts.filter(p => (p.at(0) - mid-x) * (p.at(0) - mid-x) < d2).sorted(key: p => p.at(1))
+    let best = d2
+    for a in range(strip.len()) {
+      for b in range(a + 1, strip.len()) {
+        let dy = strip.at(b).at(1) - strip.at(a).at(1)
+        if dy * dy >= best { break }
+        best = calc.min(best, dist2(strip.at(a), strip.at(b)))
       }
-      x.push(row)
     }
-    x
+    best
   }
-
-  // F_i takes the pre-sorted list P_x as an argument
-  let F_i = (P_x) => (x) => ((i, j)) => {
-    // We only compute for the upper triangle j > i
+  let rho = P => range(n).map(_ => range(n).map(_ => none))
+  let F_S = Px => x => ((i, j)) => {
     if j <= i { return none }
-
-    let length = j - i + 1
-    let current_slice = P_x.slice(i, j + 1)
-
-    // Base case: brute force for <= 3 points
-    if length <= 3 {
-      return brute_force_cpp(current_slice)
-    }
-
-    // Recursive case
-    let k = calc.floor((i + j) / 2)
-
-    let delta_L_sq = x.at(i).at(k)
-    let delta_R_sq = x.at(k + 1).at(j)
-
-    if delta_L_sq == none or delta_R_sq == none {
-      return none // Dependencies not met
-    }
-
-    let delta_sq = calc.min(delta_L_sq, delta_R_sq)
-    let delta = calc.sqrt(delta_sq)
-    let median_x = P_x.at(k).at(0)
-
-    // Build the strip
-    let strip = ()
-    for p in current_slice {
-      if calc.abs(p.at(0) - median_x) < delta {
-        strip.push(p)
-      }
-    }
-    
-    // Sort strip by y
-    let strip_y = strip.sorted(key: p => p.at(1))
-
-    let delta_strip_sq = strip_closest(strip_y, delta_sq)
-
-    return calc.min(delta_sq, delta_strip_sq)
+    let slice = Px.slice(i, j + 1)
+    if slice.len() <= 3 { return brute(slice) }
+    let k = calc.div-euclid(i + j, 2)
+    let (dl, dr) = (x.at(i).at(k), x.at(k + 1).at(j))
+    if dl == none or dr == none { return none }
+    let d2 = calc.min(dl, dr)
+    calc.min(d2, strip-min(slice, Px.at(k).at(0), d2))
   }
-  
-  let F = (P_x) => map_tensor(F_i(P_x), dim: 2)
+  let F = map_tensor(F_S(Px), dim: 2)
+  let pi = x => if n < 2 { calc.inf } else { calc.sqrt(x.at(0).at(n - 1)) }
+  (rho, F, pi, Px)
+}
 
-  let pi = (P) => (x) => {
-    let n = P.len()
-    if n < 2 { return 1e100 }
-    let final_dist_sq = x.at(0).at(n - 1)
-    
-    if final_dist_sq == none {
-      return none
-    }
-    // Return the actual distance, not the squared distance
-    return calc.sqrt(final_dist_sq)
-  }
-
-  // draw DP table (n x n)
-  let x_h(x, diff_mask:none) = {
-    set text(weight: "bold")
-    let rows = ()
-    let n = x.len()
-
-    // Header row: show j index
-    let header_cells = ()
-    header_cells.push(rect(stroke: none, inset: 4pt)[$i/j$]) // Top-left corner
-    for j in range(n) {
-      header_cells.push(rect(fill: orange.transparentize(70%), inset: 4pt)[$#j$])
-    }
-    rows.push(grid(columns: header_cells.len() * (14pt,), rows: 14pt, align: center + horizon, ..header_cells))
-
-    
-    for i in range(n) {
-      let row = ()
-      // Left label: i index
-      row.push(rect(fill: green.transparentize(70%), inset: 4pt)[$#i$])
-
-      for j in range(n) {
-        let val_raw = x.at(i).at(j)
-        // Show rounded squared distances
-        let val = if val_raw != none {
-            [$#calc.round(val_raw, digits: 1)$]
-          } else {
-            [$bot$]
-          }
-        
-        // Gray out the lower triangle (j <= i)
-        let cell_fill = if j <= i { gray.transparentize(70%) } else { none }
-        
-        if diff_mask != none and diff_mask.at(i).at(j) {
-          row.push(rect(stroke: gray, fill: yellow.transparentize(70%), inset: 4pt)[$#val$])
-        } else {
-          row.push(rect(stroke: gray, fill: cell_fill, inset: 4pt)[$#val$])
-        }
-      }
-      rows.push(grid(columns: row.len() * (14pt,), rows: 14pt, align: center + horizon, ..row))
-    }
-    grid(align: center, ..rows)
-  }
-
-
+#let closest-mc(P) = {
+  let (rho, F, pi, Px) = closest-parts(P)
+  let n = P.len()
+  let pt(p) = [(#p.at(0),#p.at(1))]
   mapcode-viz(
     rho,
-    F(P_x_sorted), // Pass the sorted list to F
-    pi(inst_P),
-    X_h: x_h,
-    pi_name: [$mpi(P)$],
-    group-size: calc.min(2, inst_n),
-    cell-size: 60mm, scale-fig: 75%
-  )(inst_P)
+    F,
+    pi,
+    I_h: P => block(width: 9em, align(center)[$P_x = $ #Px.map(pt).join(", ")]),
+    X_h: (x, diff_mask: none) => table-view(
+      x,
+      diff_mask,
+      row-labels: range(n).map(i => [$#i$]),
+      col-labels: range(n).map(j => [$#j$]),
+      corner: [$i \/ j$],
+      shade: (i, j) => j <= i,
+    ),
+    A_h: a => [$sqrt(#[#int(calc.round(a * a))]) approx #calc.round(a, digits: 3)$],
+    pi_name: [$mpi$],
+    dim: 2,
+    group-size: 2,
+    spacing: (10mm, 8mm),
+    node-shape: rect,
+  )(P)
 }
-$
+
+#let inst = ((9, 4), (3, 12), (13, 2), (6, 10), (2, 3), (11, 8), (4, 6), (7, 9))
+#figure(
+  caption: [Closest pair via mapcode for $n = 8$ points. Cell $(i, j)$ holds the minimum
+    _squared_ distance in the slice $P_x [i..j]$; the answer is its square root at $(0, 7)$.],
+  closest-mc(inst),
+)
+#legend
+
+The split of the full set happens at $x = P_x [3].x$. The two halves have closest squared
+distances $x_(0,3)$ and $x_(4,7)$; the overall closest pair straddles the split and is only found
+in the strip of half-width $delta = sqrt(min(x_(0,3), x_(4,7)))$.
+
+#figure(
+  caption: [The instance: split line (solid), strip of half-width $delta$ around it (dashed), and
+    the closest pair (red).],
+  {
+    let (rho, F, pi, Px) = closest-parts(inst)
+    let n = inst.len()
+    let x = limit-map(F)(rho(inst)) // fixed point of the same F
+    let k = calc.div-euclid(n - 1, 2)
+    let mid-x = Px.at(k).at(0)
+    let delta = calc.sqrt(calc.min(x.at(0).at(k), x.at(k + 1).at(n - 1)))
+    let best = x.at(0).at(n - 1)
+    let pairs = ()
+    for a in range(n) {
+      for b in range(a + 1, n) { pairs.push((Px.at(a), Px.at(b))) }
+    }
+    let (p, q) = pairs.find(((p, q)) => dist2(p, q) == best)
+    lq.diagram(
+      width: 8cm,
+      height: 5.5cm,
+      xlabel: $x$,
+      ylabel: $y$,
+      lq.vlines(mid-x, stroke: 1pt + c-accent),
+      lq.vlines(mid-x - delta, mid-x + delta, stroke: (paint: c-accent, dash: "dashed", thickness: 0.6pt)),
+      lq.scatter(Px.map(p => p.at(0)), Px.map(p => p.at(1)), size: Px.map(_ => 80), color: luma(80)),
+      lq.plot((p.at(0), q.at(0)), (p.at(1), q.at(1)), color: c-bad, stroke: 1.2pt + c-bad, mark-size: 6pt),
+    )
+  },
 )

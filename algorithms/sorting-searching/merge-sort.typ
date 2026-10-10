@@ -1,208 +1,128 @@
 #import "/lib/style.typ": *
 #import "/lib/mapcode.typ": *
+#import "/lib/viz.typ": *
 
 == Mergesort
 #set math.equation(numbering: none)
 
-Sort an array of integers using the bottom-up mergesort algorithm. Elements are progressively merged from smaller sorted segments into larger ones.
+Sort an array of integers with bottom-up mergesort: start from sorted runs of length 1 and
+repeatedly merge adjacent runs, doubling the run length each round.
 
-Formal definition:
-
-Given array $a = [a_0, a_1, ..., a_(n-1)]$, produce sorted array $a' = [a'_0, a'_1, ..., a'_(n-1)]$ where:
+Formal definition: given $a = [a_0, ..., a_(n-1)]$, produce a permutation $a'$ of $a$ with
 $
-forall i < j: a'_i <= a'_j quad "and" quad {a'_i} = {a_i}
+  a'_i <= a'_j quad "for all " i < j.
 $
-
-Bottom-up approach:
-- Start: treat each element as a sorted segment of length 1
-- Iterate: merge pairs of adjacent sorted segments
-- Double segment length each iteration
-- Terminate: when segment length exceeds array size
 
 Examples:
-- $"mergesort"([5,2,8,1]) -> [1,2,5,8]$
-- $"mergesort"([9,3,7,5,6]) -> [3,5,6,7,9]$
+- $"mergesort"([5, 2, 8, 1]) -> [1, 2, 5, 8]$
+- $"mergesort"([9, 3, 7, 5, 6]) -> [3, 5, 6, 7, 9]$
+- $"mergesort"([]) -> []$
 
 *As mapcode:*
 
-_primitives_: Binary `merge` operator combines sorted sequences. Strict: returns $bot$ if either input is $bot$.
+_primitives_: `merge`, which combines two sorted sequences into one sorted sequence.
+$"merge_pairs"(a, s)$ merges the runs $a[2k s .. (2k+1)s)$ and $a[(2k+1)s .. (2k+2)s)$ for every
+$k$ (a trailing run without a partner is copied unchanged).
 
-State: each iteration $i$ stores tuple $(w_i, a_i)$ where $w_i$ is merge width, $a_i$ is partially sorted array.
+The state is the current run width $s$ together with the array, in which every block
+$a[k s .. (k+1)s)$ is sorted.
 
-$ I = a: "Seq"[ZZ] quad quad X &= NN -> (NN times "Seq"[ZZ])_bot quad quad A = "Seq"[ZZ]\
-rho(a) &= {0 -> (1, a), k -> bot | k > 0}\
-F(x_k) &= cases(
-  x_0 & "if " k = 0,
-  (w', a') & "if " x_(k-1) != bot "and" w < n,
-  x_(k-1) & "if " x_(k-1) != bot "and" w >= n
-) \
-& "where " (w, a) = x_(k-1) ", " w' = 2w ", " a' = "merge_pairs"(a, w) \
-pi(x) &= a "where" (w, a) = "last"({x_k | x_k != bot "and" w >= n})
+$
+  I = "Seq"[ZZ] quad quad X = NN times "Seq"[ZZ] quad quad A = "Seq"[ZZ] \
+  rho(a) = (1, a) \
+  F_n (s, a) = cases(
+    (s, a) & "if " s >= n,
+    (2s, "merge_pairs"(a, s)) & "if " s < n
+  ) quad "where " n = |a| \
+  pi(s, a) = a
 $
 
-Iteration count: $ceil(log_2 n)$ steps until $w >= n$.
+Each step doubles $s$, so $F$ reaches its fixed point after $ceil(log_2 n)$ steps (immediately
+for $n <= 1$, including the empty array). The invariant "every block of width $s$ is sorted"
+holds in every state; at the fixed point $s >= n$, so the whole array is one sorted block.
 
-#let inst_arr = (5, 2, 8, 1, 6, 3);
-#figure(
-  caption: [Mergesort using mapcode for input $a = #inst_arr$],
-$
-#{
-  // Combine two sorted sequences
-  let combine_sorted = (left, right) => {
+#pseudo[
+  + $s <- 1$
+  + *while* $s < n$
+    + *for* $k = 0, 2s, 4s, ...$ *while* $k < n$
+      + $a[k .. k+2s) <- "merge"(a[k .. k+s), a[k+s .. k+2s))$
+    + $s <- 2s$
+  + *return* $a$
+]
+
+#let merge-mc(inst) = {
+  // Merge two sorted sequences.
+  let merge = (xs, ys) => {
     let out = ()
     let (p, q) = (0, 0)
-    
-    while p < left.len() and q < right.len() {
-      if left.at(p) <= right.at(q) {
-        out.push(left.at(p))
+    while p < xs.len() and q < ys.len() {
+      if xs.at(p) <= ys.at(q) {
+        out.push(xs.at(p))
         p += 1
       } else {
-        out.push(right.at(q))
+        out.push(ys.at(q))
         q += 1
       }
     }
-    
-    // Append remaining
-    while p < left.len() { out.push(left.at(p)); p += 1 }
-    while q < right.len() { out.push(right.at(q)); q += 1 }
-    
+    out + xs.slice(p) + ys.slice(q)
+  }
+  // Merge adjacent runs of width s.
+  let merge-pairs = (a, s) => {
+    let n = a.len()
+    let out = ()
+    for k in range(0, n, step: 2 * s) {
+      let mid = calc.min(k + s, n)
+      let end = calc.min(k + 2 * s, n)
+      out += merge(a.slice(k, mid), a.slice(mid, end))
+    }
     out
   }
-
-  // Merge adjacent pairs with given width
-  let merge_pairs = (sequence, width) => {
-    let merged = ()
-    let pos = 0
-    let total = sequence.len()
-    
-    while pos < total {
-      let end_left = calc.min(pos + width, total)
-      let end_right = calc.min(pos + 2 * width, total)
-      
-      let left_part = sequence.slice(pos, end_left)
-      let right_part = if end_left < total {
-        sequence.slice(end_left, end_right)
-      } else { () }
-      
-      if right_part.len() > 0 {
-        merged += combine_sorted(left_part, right_part)
-      } else {
-        merged += left_part
-      }
-      
-      pos += 2 * width
-    }
-    
-    merged
+  let n = inst.len()
+  let rho = a => (1, a)
+  let F_S = n => ((s, a)) => if s >= n { (s, a) } else { (2 * s, merge-pairs(a, s)) }
+  let pi = ((s, a)) => a
+  let X_h = ((s, a), diff_mask: none) => {
+    let runs = range(0, a.len(), step: s)
+      .enumerate()
+      .map(((k, lo)) => (lo, calc.min(lo + s, a.len()) - 1, if calc.even(k) { c-done } else { c-active }))
+    stack(
+      dir: ttb,
+      spacing: 4pt,
+      align(center, box(baseline: 30%, text(size: 0.85em)[$s =$]) + cell(s, changed: mask-at(diff_mask, 0))),
+      // run strip above the array: keeps the runs visible where the change highlight covers their colour
+      grid(columns: calc.max(a.len(), 1), ..runs
+          .map(((lo, hi, col)) => range(lo, hi + 1).map(i => box(
+            width: 1.9em,
+            height: 4pt,
+            inset: (left: if i == lo { 1pt } else { 0pt }, right: if i == hi { 1pt } else { 0pt }),
+            box(width: 100%, height: 100%, fill: col.opacify(30%)),
+          )))
+          .flatten()),
+      array-view(a, mask: if type(diff_mask) == array { diff_mask.at(1) } else { diff_mask }, runs: runs),
+    )
   }
-
-  // ρ: Initial state with width=1
-  let rho = sequence => {
-    let capacity = calc.ceil(calc.log(sequence.len(), base: 2)) + 3
-    let states = ()
-    for _ in range(capacity) { states.push(none) }
-    states.at(0) = (1, sequence)
-    states
-  }
-
-  // F: Apply one merge iteration
-  let F_i = states => ((index,)) => {
-    if index == 0 { 
-      return states.at(0) 
-    }
-    
-    let prev = states.at(index - 1)
-    if prev == none { return none }
-    
-    let (width, arr) = prev
-    let n = arr.len()
-    
-    // Already complete
-    if width >= n {
-      return (width, arr)
-    }
-    
-    // Perform merge with doubled width
-    let next_arr = merge_pairs(arr, width)
-    (width * 2, next_arr)
-  }
-  let F = map_tensor(F_i, dim: 1)
-
-  // π: Extract final sorted array
-  let pi = original => states => {
-    let n = original.len()
-    for idx in range(states.len() - 1, -1, step: -1) {
-      let state = states.at(idx)
-      if state != none {
-        let (width, arr) = state
-        if width >= n { return arr }
-      }
-    }
-    original
-  }
-
-  // Display state as (width: [elements])
-  let X_h = (states, diff_mask: none) => {
-    let rendered = ()
-    
-    for idx in range(states.len()) {
-      let state = states.at(idx)
-      
-      let content = if state != none {
-        let (w, arr) = state
-        let elements = arr.map(x => str(x)).join(",")
-        $(w=#w: [#elements])$
-      } else {
-        $bot$
-      }
-      
-      // Check if this state changed
-      let changed = if diff_mask != none and idx < diff_mask.len() {
-        let mask_val = diff_mask.at(idx)
-        if type(mask_val) == array {
-          mask_val.any(b => b)
-        } else {
-          mask_val
-        }
-      } else { false }
-      
-      if changed {
-        rendered.push(rect(fill: yellow.transparentize(70%), inset: 3pt)[#content])
-      } else {
-        rendered.push(rect(stroke: none, inset: 3pt)[#content])
-      }
-    }
-    
-    $vec(delim: "[", ..rendered)$
-  }
-
-  let A_h = result => {
-    if result != none {
-      let vals = result.map(x => str(x)).join(",")
-      $[#vals]$
-    } else {
-      $bot$
-    }
-  }
-
   mapcode-viz(
     rho,
-    F,
-    pi(inst_arr),
+    F_S(n),
+    pi,
+    I_h: a => [$a = (#a.map(str).join(", "))$],
     X_h: X_h,
-    A_h: A_h,
-    pi_name: [$pi$],
-    dim: 1,
-    group-size: 4,
-    cell-size: 22mm,
-    scale-fig: 80%,
-  )(inst_arr)
+    A_h: a => [$(#a.map(str).join(", "))$],
+    pi_name: [$mpi$],
+    dim: 2,
+    group-size: 2,
+    spacing: (10mm, 8mm),
+    node-shape: rect,
+  )(inst)
 }
-$
-)
 
-*Analysis:*
-- Iterations: $O(log n)$ - width doubles each step
-- Per iteration: $O(n)$ - scan entire array
-- Total time: $O(n log n)$
-- Space: $O(log n)$ - one state per iteration
+#let inst = (5, 2, 8, 1, 6, 3, 7)
+#figure(
+  caption: [Bottom-up mergesort via mapcode for $a = (5, 2, 8, 1, 6, 3, 7)$. Alternating colours
+    mark the sorted runs of width $s$; highlighted cells changed in the last merge round.],
+  merge-mc(inst),
+)
+#legend
+
+*Analysis:* $ceil(log_2 n)$ steps of $F$, each doing $O(n)$ work in `merge_pairs`, for
+$O(n log n)$ time in total.
