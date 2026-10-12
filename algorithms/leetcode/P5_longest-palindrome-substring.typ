@@ -31,20 +31,28 @@ Constraints: $1 <= |s| <= 1000$, and $s$ consists of digits and English letters.
 
 _primitives_: `and`($and$) and `equals`($=$) are strict, i.e. they return $bot$ if any argument is $bot$.
 
-$
-  I = Sigma^+ quad quad X_s = {(i, j) | 0 <= i <= j < n} -> BB_bot quad quad A = Sigma^+ \
-  rho(s) = {(i, j) -> bot | 0 <= i <= j < n} \
-  F_s (x)_(i,j) = cases(
-    "true" & "if " i = j,
-    s_i = s_j & "if " j = i + 1,
-    s_i = s_j and x_(i+1, j-1) & "if " j > i + 1
-  ) \
-  pi_s (x) = s_(i^*) dots s_(j^*) quad "where" (i^*, j^*) "is the leftmost cell of maximal" j - i "with" x_(i,j) = "true"
-$
-
-Cells of length $1$ and $2$ are set in the first step; a cell of length $ell >= 3$ needs the cell of
-length $ell - 2$ inside it and is set in step $ceil(ell \/ 2)$. Cells with $j < i$ lie outside the
-domain and are shaded.
+#mc-spec(
+  state: [Cell $x_(i,j)$ of the state, for $i <= j$, says whether $s_i dots s_j$ is a palindrome,
+    or holds $bot$ while the cell inside it is still unknown.],
+  I: $I = Sigma^+$,
+  X: $X = X_s = {(i, j) | 0 <= i <= j < n} -> BB_bot$,
+  A: $A = Sigma^+$,
+  rho: $rho(s) = {(i, j) |-> bot}$,
+  F: $F = F_s, quad F_s (x)_(i,j) = cases(
+    "true" & "if" i = j,
+    s_i = s_j & "if" j = i + 1,
+    s_i = s_j and x_(i+1, j-1) & "if" j > i + 1
+  )$,
+  pi: $pi = pi_s = x |-> s_(i^*) dots s_(j^*)$,
+  sigma: $sigma(x) = |{(i, j) | x_(i,j) = bot}|$,
+  inv: $"Inv"(x) <=> forall i, j . x_(i,j) != bot => x_(i,j) = P(i, j)$,
+)
+where $(i^*, j^*)$ is the leftmost cell of maximal $j - i$ with $x_(i,j) = "true"$. Cells of
+length $1$ and $2$ are set with their final value $P(i, j)$ in the first step, and by strictness a
+cell of length $ell >= 3$ is set, to $P(i, j)$, only once the cell of length $ell - 2$ inside it is,
+which happens in step $ceil(ell \/ 2)$; so defined cells never change, each non-fixed step defines a
+new cell and decreases $sigma$, and at the fixed point $x = P$ and $pi_s (x) = "lps"(s)$. Cells
+with $j < i$ lie outside the domain and are shaded.
 
 #let lps-mc(s) = {
   let cs = s.codepoints()
@@ -82,6 +90,7 @@ domain and are shaded.
     I_h: s => raw("\"" + s + "\""),
     X_h: X_h,
     A_h: a => raw("\"" + a + "\""),
+    F_name: [$F_s$],
     pi_name: [$mpi_s$],
     group-size: 3,
     spacing: (8mm, 10mm),

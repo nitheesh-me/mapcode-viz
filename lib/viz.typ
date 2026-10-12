@@ -261,3 +261,31 @@
   #botc undefined #h(1em)
   #box(width: 0.9em, height: 0.8em, fill: c-shade, stroke: 0.4pt + c-grid) outside domain
 ]
+
+// Specification block for a mapcode, laid out in three rows:
+//   I, X, A  /  ρ, F, π  /  σ (bound function) and θ (invariant value) or Inv (invariant predicate).
+// Each argument is a full equation, e.g. `rho: $rho(n) = (n, 1)$`. `state` is an optional
+// sentence naming the components of the state, printed above the block.
+#let mc-spec(state: none, I: none, X: none, A: none, rho: none, F: none, pi: none, sigma: none, theta: none, inv: none) = {
+  let disp(e) = if e == none { [] } else if type(e) == content and e.func() == math.equation {
+    math.equation(block: true, numbering: none, e.body)
+  } else { e }
+  if state != none { par(state) }
+  show math.equation.where(block: true): set align(left)
+  let third = if theta != none { theta } else { inv }
+  let g = grid(
+    columns: 3,
+    column-gutter: 2.2em,
+    row-gutter: 0.9em,
+    align: left + horizon,
+    disp(I), disp(X), disp(A),
+    disp(rho), disp(F), disp(pi),
+    disp(sigma), grid.cell(colspan: 2, disp(third)),
+  )
+  // Never wider than the text column: shrink the block if its natural width does not fit.
+  layout(size => {
+    let w = measure(g).width
+    let s = if w > size.width { size.width / w * 100% } else { 100% }
+    align(center, block(scale(s, reflow: true, g)))
+  })
+}

@@ -7,42 +7,36 @@
     (name: "Contributors from PoPL 2025, IIITH", email: "", affiliation: "Students, PoPL"),
   ),
   abstract: [
-    Recursion modeling in the `mapcode` framework: every algorithm is presented as an
-    initialisation $rho$, a transformation $F$ iterated to its fixed point, and a projection $pi$,
-    and every figure shows the full sequence of states that $F$ passes through.
+    Recursive algorithms are usually taught through code and call trees. These show what an
+    algorithm computes but hide the order in which sub-problems become available. The mapcode
+    model makes that order explicit. A computation is an initialisation $rho$, a transformation
+    $F$ iterated to a fixed point, and a projection $pi$. Applying the model systematically
+    requires two things: a uniform recipe for recasting algorithms in this form, and a way to
+    show every iteration. We provide both for more than thirty algorithms, spanning dynamic
+    programming, number theory, sorting and searching, divide-and-conquer, backtracking, and
+    trees and graphs. In most of them the state is a table of sub-problems that starts
+    undefined, and $F$ fills a cell only once the cells it depends on are defined, so the fixed
+    point is exactly the table the recursion defines. Every run is drawn in
+    full, highlighting the cells that each step of $F$ defines. A companion Lean 4
+    formalisation proves mapcodes correct using a decreasing bound function and a preserved
+    invariant, and the figures can display both. Together these make each algorithm's
+    dependency structure and correctness argument directly visible, giving a uniform
+    foundation for teaching recursion.
   ],
-  keywords: ("Mapcode", "Recursion", "Programming"),
+  keywords: ("Mapcode", "Recursion", "Fixed points", "Dynamic programming", "Program verification", "Visualization"),
   date: datetime.today().display(),
 )
 
 
 #import "lib/style.typ": *
+#show table: set par(justify: false)
+#set cite(style: "apa")
 
 #set math.equation(numbering: none)
 
-= Notations and Conventions
-
-A vector is (zero-)indexed as follows that has size $n+1$:
-$
-  vec(
-    x_0, dots.v, x_n,
-    delim: "["
-  )_(n+1)
-$
-
-A matrix is also (zero-)indexed as follows that has size $m times n$:
-$
-  mat(
-    delim: "[",
-    x_(0,0), x_(0,1), dots, x_(0,n-1);
-    x_(1,0), x_(1,1), dots, x_(1,n-1);
-    dots, dots, dots, dots;
-    x_(m-1,0), x_(m-1,1), dots, x_(m-1,n-1)
-  )_(m times n)
-$
-
-All primitives are _strict_ meaning they do not allow for undefined values (i.e., $bot$) to be used in their computations.
-
+#pagebreak()
+#heading(outlined: false, numbering: none)[Contents]
+#columns(2, gutter: 1.2em, text(size: 0.92em, outline(title: none, depth: 2, indent: auto)))
 #pagebreak()
 #include "chapters/mapcode-model.typ"
 
@@ -125,4 +119,15 @@ All primitives are _strict_ meaning they do not allow for undefined values (i.e.
 #include "algorithms/leetcode/P198_house-robber.typ"
 
 #pagebreak()
+#include "chapters/bonus-quantum.typ"
+
+#pagebreak()
+#bibliography("refs.bib", title: "References", style: "apa")
+
+#pagebreak()
 #include "chapters/contributors.typ"
+
+#pagebreak()
+#counter(heading).update(0)
+#set heading(numbering: "A.1")
+#include "chapters/notation.typ"

@@ -23,16 +23,24 @@ Examples:
 
 _primitives_: `sum`($+$) and `max` are strict, i.e. they return $bot$ if any argument is $bot$.
 
-$
-  I = NN^* quad quad X_"nums" = [0..n-1] -> NN_bot quad quad A = NN quad quad "where" n = |"nums"| \
-  rho("nums") = {i -> bot | i in [0..n-1]} \
-  F_"nums" (x)_i = 1 + max({x_j | j < i, "nums"_j < "nums"_i} union {0}) \
-  pi_"nums" (x) = max_i x_i
-$
-
-Cell $i$ becomes defined as soon as every earlier cell with a smaller value is defined; cells
-with no smaller predecessor are set to $1$ in the first step. Hence $x_i$ is fixed after
-$L(i)$ steps and the fixed point is reached after $max_i L(i)$ steps.
+#mc-spec(
+  state: [With $n = |"nums"|$, the state is an array $x$ with one cell per position; cell $i$
+    holds the length of the longest increasing subsequence ending at position $i$ once it is
+    known, and $bot$ before that.],
+  I: $I = NN^*$,
+  X: $X = X_"nums" = [0..n-1] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho("nums") = {i |-> bot}$,
+  F: $F = F_"nums", quad F_"nums" (x)_i = 1 + max(P_i union {0})$,
+  pi: $pi = pi_"nums" = x |-> max({0} union {x_i})$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = L(i)$,
+)
+where $P_i = {x_j | j < i, "nums"_j < "nums"_i}$ holds the values of the earlier, smaller cells.
+Cell $i$ is defined only once every earlier cell with a smaller value is defined, and by
+$"Inv"$ those cells already hold $L(j)$, so defined cells never change and every step that
+changes $x$ defines a new cell and lowers $sigma$; cell $i$ is defined after $L(i)$ steps, so at
+the fixed point $x_i = L(i)$ everywhere and $pi_"nums" (x) = max_i L(i)$ (or $0$ when $n = 0$).
 
 #let lis-mc(nums) = {
   let n = nums.len()

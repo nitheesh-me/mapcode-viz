@@ -2,12 +2,14 @@
 #import "/lib/mapcode.typ": *
 #import "/lib/viz.typ": *
 
-== Bellman-Ford Shortest Paths
+== Bellman–Ford Shortest Paths <sec-bellman-ford>
 #set math.equation(numbering: none)
 
 Given a directed graph $G = (V, E)$ with integer edge weights (possibly negative) and a source
 $s in V$, compute the shortest-path distance $delta(s, v)$ from $s$ to every vertex $v$. We assume
 there is no negative cycle reachable from $s$; otherwise shortest paths are not defined.
+The recurrence below is due to #cite(<bellman1958>, form: "prose")\; the example graph is
+Figure 24.4 of #cite(<clrs2009>, form: "prose").
 
 Formal definition, with $d^((k))(v)$ the length of a shortest path from $s$ to $v$ using at most $k$ edges:
 $
@@ -24,20 +26,35 @@ Examples:
 
 _primitives_: `min` and `add`($+$) on $ZZ union {infinity}$ with $infinity + w = infinity$.
 
-$
-  I = (V, E, s), quad E subset.eq V times V times ZZ quad quad X = V -> ZZ union {infinity} quad quad A = V -> ZZ union {infinity} \
-  rho(V, E, s) = {v -> (0 "if " v = s "else" infinity) | v in V} \
-  F_E (x)_v = min(x_v, min_((u, v, w) in E) x_u + w) \
-  pi(x) = x
-$
+#mc-spec(
+  state: [Cell $x_v$ of the state holds the length of the shortest walk from $s$ to $v$ found so
+    far, or $infinity$ if $v$ has not been reached yet.],
+  I: $I = (V, E, s)$,
+  X: $X = V -> ZZ union {infinity}$,
+  A: $A = V -> ZZ union {infinity}$,
+  rho: $rho(V, E, s) = {v |-> d^((0))(v) | v in V}$,
+  F: $F = F_E, quad F_E (x)_v = min(x_v, min_((u, v, w) in E) x_u + w)$,
+  pi: $pi(x) = x$,
+  sigma: $sigma(x) = sum_(v in V) phi_v (x_v)$,
+  inv: $"Inv"(x) <=> exists k in NN . x = d^((k))$,
+)
+where $E subset.eq V times V times ZZ$ and, with $W = sum_((u, v, w) in E) |w|$,
+$ phi_v (d) = cases(d - delta(s, v) & "if" d < infinity, 2W + 1 & "if" d = infinity.) $
 
-Here $infinity$ means "not reached yet"; it is a genuine value, not $bot$, because $infinity + w = infinity$
-and $min(infinity, d) = d$ are well defined, so no state cell is ever undefined. The edge set $E$ is
-part of the instance and reaches $F_E$ by closure. After $k$ steps $x_v <= d^((k))(v)$, and since a
-shortest path uses at most $|V| - 1$ edges, $F_E$ reaches its fixed point within $|V|$ steps.
+Here $infinity$ means "not reached yet"; it is a genuine value, not $bot$, because
+$infinity + w = infinity$ and $min(infinity, d) = d$ are well defined, so no state cell is ever
+undefined. The edge set $E$ is part of the instance and reaches $F_E$ by closure.
+The invariant holds because $rho$ builds $d^((0))$ and $F_E$ is exactly the recurrence, so
+$F_E (d^((k))) = d^((k+1))$; at the fixed point $x = d^((|V|-1))$, so $pi(x)_v = delta(s, v)$.
+With no negative cycle, a finite $d^((k))(v)$ is the length of a simple path, so
+$-W <= delta(s, v) <= x_v <= W$ and $sigma$ takes values in $NN$; $F_E$ never raises a cell, and a step
+that changes the state lowers some integer $x_v$ by at least $1$ or turns an $infinity$ (worth
+$2W + 1$) into a finite value (worth at most $2W$), so $sigma$ strictly decreases. Since a shortest
+path uses at most $|V| - 1$ edges, the fixed point is reached within $|V|$ steps.
 
 If a negative cycle is reachable from $s$, the distances around it decrease forever: $F_E$ has
-no fixed point, and `mapcode-viz` stops with its max-iteration guard instead of looping.
+no fixed point, so the mapcode does not terminate; this is why the instance must be free of
+negative cycles.
 
 #let bellman-ford-mc(inst, pos, names) = {
   let (n, edges, src) = inst
@@ -85,6 +102,7 @@ no fixed point, and `mapcode-viz` stops with its max-iteration guard instead of 
     ),
     X_h: X_h,
     A_h: a => vec-view(a, none, labels: names.map(v => [#v])),
+    F_name: [$F_E$],
     pi_name: [$mpi$],
     group-size: 2,
     spacing: (12mm, 10mm),

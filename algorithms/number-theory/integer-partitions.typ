@@ -26,29 +26,35 @@ Examples:
 - $p(6, 4) -> 9$
 - $p(7, 7) -> 15$
 
-Taking $k = n$ gives the partition numbers $p(n) = p(n, n)$, OEIS sequence A000041:
+Taking $k = n$ gives the partition numbers $p(n) = p(n, n)$, OEIS sequence A000041 @oeisA000041:
 $1, 1, 2, 3, 5, 7, 11, 15, 22, 30, dots$ for $n = 0, 1, 2, dots$
 
 *As mapcode:*
 
 _primitives_: `sum`($+$) is strict, i.e. $bot + v = v + bot = bot$.
 
-$
-  I = NN times NN quad quad X_(n,k) = [0..n] times [0..k] -> NN_bot quad quad A = NN \
-  rho(n, k) = {(i, j) -> bot | i in [0..n], j in [0..k]} \
-  F(x)_(i,j) = cases(
+#mc-spec(
+  state: [For fixed $(n, k)$, cell $(i, j)$ of the table holds the number $p(i, j)$ of partitions
+    of $i$ into parts at most $j$ once it is known, and $bot$ before.],
+  I: $I = NN times NN$,
+  X: $X = X_(n,k) = [0..n] times [0..k] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(n, k)_(i,j) = bot$,
+  F: $F(x)_(i,j) = cases(
     1 & "if " i = 0,
     0 & "if " i > 0 "and" j = 0,
     x_(i, j-1) & "if " 0 < i < j,
     x_(i, j-1) + x_(i-j, j) & "if " i >= j > 0
-  ) \
-  pi_(n,k) (x) = x_(n,k)
-$
-
-The first step fills row $0$ and column $0$. Cell $(i, j)$ then waits for its left neighbour
-and, when $i >= j$, for the cell $j$ rows above it. Both lie on an earlier anti-diagonal
-($i + j$ smaller), so the defined region sweeps across the table diagonal by diagonal and the
-fixed point is reached after at most $n + k$ steps.
+  )$,
+  pi: $pi = pi_(n,k) = x |-> x_(n,k)$,
+  sigma: $sigma(x) = |{(i, j) | x_(i,j) = bot}|$,
+  inv: $"Inv"(x) <=> forall i, j . x_(i,j) != bot => x_(i,j) = p(i, j)$,
+)
+The first step fills row $0$ and column $0$; cell $(i, j)$ then waits for its left neighbour and,
+when $i >= j$, for the cell $j$ rows above, both on an earlier anti-diagonal, so the table fills
+diagonal by diagonal in at most $n + k$ steps. Defined cells never change, so every changing step
+defines new cells and $sigma$ drops; $F$ is the recurrence for $p$, so $"Inv"$ is preserved, and
+at the fixed point $pi$ returns $x_(n,k) = p(n, k)$.
 
 #let partitions-mc(inst) = {
   let (n, k) = inst

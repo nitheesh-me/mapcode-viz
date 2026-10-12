@@ -30,23 +30,29 @@ Examples:
 
 _primitives_: `sum`($+$) and `min` are strict, i.e. they return $bot$ if any argument is $bot$.
 
-$
-  I = Sigma^* times Sigma^* quad quad X_(S,T) = [0..m] times [0..n] -> NN_bot quad quad A = NN
-  quad quad "where" m = |S|, n = |T| \
-  rho(S, T) = {(i, j) -> bot | i in [0..m], j in [0..n]} \
-  F_(S,T)(x)_(i,j) = cases(
+#mc-spec(
+  state: [With $m = |S|$ and $n = |T|$, the state is a table $x$ with one cell for every pair of
+    prefix lengths; cell $(i, j)$ holds the edit distance between $S_1 dots S_i$ and
+    $T_1 dots T_j$ once it is known, and $bot$ before that.],
+  I: $I = Sigma^* times Sigma^*$,
+  X: $X = X_(S,T) = [0..m] times [0..n] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(S, T) = {(i, j) |-> bot}$,
+  F: $F = F_(S,T), quad F_(S,T)(x)_(i,j) = cases(
     i & "if " j = 0,
     j & "if " i = 0,
     x_(i-1,j-1) & "if " S_i = T_j,
-    1 + min(x_(i-1,j), x_(i,j-1), x_(i-1,j-1)) & "otherwise"
-  ) \
-  pi_(S,T)(x) = x_(m,n)
-$
-
-$rho$ takes the two strings themselves, so the shape of the table is read off the instance.
-The first step fills row $0$ and column $0$; afterwards every interior cell is defined one step
-after its upper, left and diagonal neighbours, so the table fills along anti-diagonals and the
-fixed point is reached after at most $m + n$ steps.
+    1 + mu_(i,j) & "otherwise"
+  )$,
+  pi: $pi = pi_(S,T) = x |-> x_(m,n)$,
+  sigma: $sigma(x) = |{(i, j) | x_(i,j) = bot}|$,
+  inv: $"Inv"(x) <=> forall (i, j) . x_(i,j) != bot => x_(i,j) = "ED"(i, j)$,
+)
+where $mu_(i,j) = min(x_(i-1,j), x_(i,j-1), x_(i-1,j-1))$ (strict, so $bot$ if any neighbour is $bot$).
+A cell is defined only from defined neighbours, which by $"Inv"$ already hold their final
+$"ED"$ values, so defined cells never change and every step that changes $x$ defines a new cell
+and lowers $sigma$; the first step fills row and column $0$, the rest fills along
+anti-diagonals, and at the fixed point every cell is defined, so $pi_(S,T)(x) = "ED"(m, n)$.
 
 #let ed-mc(inst) = {
   let (S, T) = inst

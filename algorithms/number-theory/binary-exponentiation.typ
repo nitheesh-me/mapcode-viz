@@ -30,20 +30,27 @@ Only the exponents reached by repeated halving are ever needed, so the state is 
 indexed by the key set $K(e) = {floor(e slash 2^j) | j >= 0}$, which contains $0$ and has
 $floor(log_2 e) + 2$ elements for $e >= 1$.
 
-$
-  I = NN times NN quad quad X_(b,e) = K(e) -> NN_bot quad quad A = NN \
-  rho(b, e) = {k -> bot | k in K(e)} \
-  F_b (x)_k = cases(
+#mc-spec(
+  state: [For fixed $(b, e)$, the cell with key $k in K(e)$ holds $b^k$ once it is known and $bot$
+    before.],
+  I: $I = NN times NN$,
+  X: $X = X_(b,e) = K(e) -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(b, e) = {k |-> bot | k in K(e)}$,
+  F: $F = F_b, quad F_b (x)_k = cases(
     1 & "if " k = 0,
     (x_(floor(k slash 2)))^2 & "if " k > 0 "is even",
     b dot (x_(floor(k slash 2)))^2 & "if " k "is odd"
-  ) \
-  pi_e (x) = x_e
-$
-
-$K(e)$ is closed under $k |-> floor(k slash 2)$, so every cell's dependency is in the table.
-The keys fill from $0$ upwards, one per step, and the fixed point is reached after
-$|K(e)|$ steps.
+  )$,
+  pi: $pi = pi_e = x |-> x_e$,
+  sigma: $sigma(x) = |{k | x_k = bot}|$,
+  inv: $"Inv"(x) <=> forall k . x_k != bot => x_k = "pow"(b, k)$,
+)
+$K(e)$ is closed under $k |-> floor(k slash 2)$, so every cell's dependency is in the table; a
+cell is defined only from a defined cell that never changes again, so each changing step defines
+a new key (they fill from $0$ upwards, one per step) and $sigma$ drops. $F$ mirrors the
+recursion for $"pow"$, so every defined cell is $"pow"(b, k)$, and at the fixed point all of
+$K(e)$, including $e$, is defined, so $pi_e$ returns $"pow"(b, e) = b^e$.
 
 #let binexp-mc(inst) = {
   let (b, e) = inst
@@ -87,7 +94,7 @@ $|K(e)|$ steps.
         width: 3em,
       )
     },
-    F_name: [$F_b$],
+    F_name: [$F_#b$],
     pi_name: [$mpi_#e$],
     group-size: 3,
     spacing: (8mm, 10mm),

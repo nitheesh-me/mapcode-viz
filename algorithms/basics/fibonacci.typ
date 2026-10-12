@@ -24,20 +24,22 @@ Examples:
 
 _primitives_: `sum`($+$) is strict, i.e. $bot + v = v + bot = bot$.
 
-$
-  I = NN quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
-  rho(n) = {i -> bot | i in [0..n]} \
-  F(x)_i = cases(
-    0 & "if " i = 0,
-    1 & "if " i = 1,
-    x_(i-1) + x_(i-2) & "if " i >= 2
-  ) \
-  pi_n (x) = x_n
-$
-
-Each step of $F$ recomputes every cell from the previous state. Cell $i$ becomes defined one
-step after cells $i-1$ and $i-2$, so the table fills left to right and reaches its fixed point
-after $n$ steps; a pre-filled cell never changes again.
+#mc-spec(
+  state: [For a fixed $n$, cell $i$ of the table $x$ holds $"fib"(i)$ once it is defined and
+    $bot$ before that.],
+  I: $I = NN$,
+  X: $X = X_n = [0..n] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(n) = {i |-> bot | i in [0..n]}$,
+  F: $F(x)_i = cases(0 & "if " i = 0, 1 & "if " i = 1, x_(i-1) + x_(i-2) & "if " i >= 2)$,
+  pi: $pi = pi_n = x |-> x_n$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = "fib"(i)$,
+)
+Each step recomputes every cell, but a cell becomes defined only once cells $i-1$ and $i-2$
+are, and then gets the value $"fib"(i-1) + "fib"(i-2) = "fib"(i)$ again on every later step;
+so defined cells never change, every non-fixed step defines a new cell and $sigma$ decreases,
+$"Inv"$ is preserved, and at the fixed point ($sigma = 0$) $pi_n (x) = "fib"(n)$.
 
 #let fib-mc(n) = {
   let rho = n => range(n + 1).map(_ => none)

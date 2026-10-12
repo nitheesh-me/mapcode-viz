@@ -27,19 +27,23 @@ _primitives_: `max` and `add`($+$) are strict, i.e. they return $bot$ if any arg
 
 The tree on nodes $[0..n)$ is given by its children lists $C_v$, and $0$ is the root.
 
-$
-  I = [0..n) -> [0..n)^* quad quad X_C = [0..n) -> NN_bot quad quad A = NN \
-  rho(C) = {v -> bot | v in [0..n)} \
-  F_C (x)_v = cases(
-    0 & "if " C_v = emptyset,
-    1 + max_(c in C_v) x_c & "otherwise"
-  ) \
-  pi(x) = x_0
-$
-
-A leaf is defined after the first step. An inner node $v$ becomes defined one step after the last
-of its children, so after $k$ steps exactly the nodes of height $< k$ are known and the fixed point
-is reached after $"height"(0) + 1$ steps.
+#mc-spec(
+  state: [Cell $x_v$ of the state holds the height of the subtree rooted at node $v$, or $bot$ while
+    some node below $v$ is still unresolved.],
+  I: $I = [0..n) -> [0..n)^*$,
+  X: $X = X_C = [0..n) -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(C) = {v |-> bot | v in [0..n)}$,
+  F: $F = F_C, quad F_C (x)_v = cases(0 & "if" C_v = emptyset, 1 + max_(c in C_v) x_c & "otherwise")$,
+  pi: $pi(x) = x_0$,
+  sigma: $sigma(x) = |{v | x_v = bot}|$,
+  inv: $"Inv"(x) <=> forall v . x_v != bot => x_v = "height"(v)$,
+)
+By strictness a node is defined only once all its children are, and then with the value
+$"height"(v)$, so defined cells never change and every non-fixed step defines at least one new node,
+decreasing $sigma$; at the fixed point every node is defined, so $pi(x) = "height"(0)$. After $k$
+steps exactly the nodes of height $< k$ are known, and the fixed point is reached after
+$"height"(0) + 1$ steps.
 
 #let tree-height-mc(children) = {
   let rho = C => range(C.len()).map(_ => none)
@@ -65,6 +69,7 @@ is reached after $"height"(0) + 1$ steps.
     pi,
     I_h: C => tree-view(C, root: 0, radius: 0.45),
     X_h: X_h(children),
+    F_name: [$F_C$],
     pi_name: [$mpi$],
     group-size: 3,
     spacing: (8mm, 10mm),

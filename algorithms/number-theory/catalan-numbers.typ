@@ -32,19 +32,25 @@ Examples:
 
 _primitives_: `sum`($+$) and `mul`($dot$) are strict, so a sum containing a $bot$ term is $bot$.
 
-$
-  I = NN quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
-  rho(n) = {i -> bot | i in [0..n]} \
-  F(x)_i = cases(
+#mc-spec(
+  state: [For fixed $n$, cell $i$ of the table holds the Catalan number $C_i$ once it is known
+    and $bot$ before.],
+  I: $I = NN$,
+  X: $X = X_n = [0..n] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(n) = {i |-> bot | i in [0..n]}$,
+  F: $F(x)_i = cases(
     1 & "if " i = 0,
     sum_(k=0)^(i-1) x_k dot x_(i-1-k) & "if " i >= 1
-  ) \
-  pi_n (x) = x_n
-$
-
-Cell $i$ depends on every earlier cell $x_0, dots, x_(i-1)$, so it becomes defined one step
-after $x_(i-1)$ does: the table fills in index order and the fixed point is reached after
-$n + 1$ steps.
+  )$,
+  pi: $pi = pi_n = x |-> x_n$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = C_i$,
+)
+Cell $i$ depends on every earlier cell, so it becomes defined one step after $x_(i-1)$ does and
+then never changes: the table fills in index order, each changing step defines one new cell and
+$sigma$ drops, reaching $0$ after $n + 1$ steps. $F$ is the recurrence for $C_i$, so $"Inv"$ is
+preserved, and at the fixed point $pi_n$ returns $x_n = C_n$.
 
 #let catalan-mc(n) = {
   let rho = n => range(n + 1).map(_ => none)

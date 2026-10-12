@@ -26,20 +26,31 @@ Example:
 
 _primitives_: `min`, squared distance $d^2$ (strict), and `sqrt` in $pi$ only.
 
-$
-  I = "List"[ZZ^2] quad quad X_n = {(i, j) | 0 <= i < j < n} -> NN_bot quad quad A = RR \
-  rho(P) = {(i, j) -> bot | 0 <= i < j < n} \
-  F_(P_x)(x)_(i,j) = cases(
-    min_(i <= p < q <= j) d^2(P_x [p], P_x [q]) & "if " j - i + 1 <= 3,
-    min(x_(i,k), x_(k+1,j), delta^2_"strip") & "if " j - i + 1 > 3 and x_(i,k) != bot and x_(k+1,j) != bot,
-    bot & "otherwise"
-  ) \
-  pi(x) = sqrt(x_(0, n-1))
-$
-
-The table stores squared distances, so $F$ stays in the integers; only $pi$ takes the square
-root. Slices of length $<= 3$ are filled in the first step, and a slice of length $L$ one step
-after its halves, so the fixed point is reached after about $log_2 (n \/ 3) + 2$ steps.
+#mc-spec(
+  state: [The state $x$ is a table indexed by the slices $(i, j)$, $0 <= i < j < n$, of the
+    $x$-sorted points; cell $x_(i,j)$ holds the minimum squared distance $f(i, j)$ within
+    $P_x [i..j]$, or $bot$ while it is not yet computed.],
+  I: $I = (ZZ^2)^*$,
+  X: $X = X_n = D_n -> NN_bot$,
+  A: $A = RR$,
+  rho: $rho(P) = {c |-> bot | c in D_n}$,
+  F: $F = F_(P_x), quad F_(P_x)(x)_(i,j) = cases(
+    b(i, j) & "if " j - i < 3,
+    c_(i,j)(x_(i,k), x_(k+1,j)) & "otherwise"
+  )$,
+  pi: $pi(x) = sqrt(x_(0, n-1))$,
+  sigma: $sigma(x) = |{c | x_c = bot}|$,
+  inv: $"Inv"(x) <=> forall (i, j) . x_(i,j) != bot => x_(i,j) = f(i, j)$,
+)
+where $D_n = {(i, j) | 0 <= i < j < n}$, $k = floor((i + j) / 2)$, $b(i, j) = min_(i <= p < q <= j) d^2(P_x [p], P_x [q])$ is the
+brute-force minimum, and $c_(i,j)(u, v) = min(u, v, delta^2_"strip")$ with $delta^2 = min(u, v)$ is
+the combine step, strict in $u$ and $v$ ($bot$ if either is $bot$). A cell is defined only from
+defined halves, and $c_(i,j)(f(i, k), f(k+1, j)) = f(i, j)$, so every defined cell equals $f(i, j)$
+and never changes again: $"Inv"$ is preserved, every step that changes the state defines a new
+cell, decreasing $sigma$, and at the fixed point every cell is defined, so
+$pi(x) = sqrt(f(0, n-1))$. The table stores squared distances, so $F$ stays in the integers; only
+$pi$ takes the square root. Slices of length $<= 3$ are filled in the first step, and a longer slice
+one step after its halves, so the fixed point is reached after about $log_2 (n \/ 3) + 2$ steps.
 
 #let dist2 = (p, q) => (p.at(0) - q.at(0)) * (p.at(0) - q.at(0)) + (p.at(1) - q.at(1)) * (p.at(1) - q.at(1))
 
@@ -100,6 +111,7 @@ after its halves, so the fixed point is reached after about $log_2 (n \/ 3) + 2$
       shade: (i, j) => j <= i,
     ),
     A_h: a => [$sqrt(#[#int(calc.round(a * a))]) approx #calc.round(a, digits: 3)$],
+    F_name: [$F_(P_x)$],
     pi_name: [$mpi$],
     dim: 2,
     group-size: 2,

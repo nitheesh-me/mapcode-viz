@@ -29,20 +29,26 @@ Constraints: $1 <= n <= 100$ and $0 <= h_i <= 400$.
 
 _primitives_: `max` and `add`($+$) are strict, i.e. they return $bot$ if any argument is $bot$.
 
-$
-  I = NN^n quad quad X_h = [0..n) -> NN_bot quad quad A = NN \
-  rho(h) = {i -> bot | i in [0..n)} \
-  F_h (x)_i = cases(
+#mc-spec(
+  state: [The state is a table $x$ indexed by house: cell $x_i$ holds the best amount
+    $"rob"(i)$ from houses $0, dots, i$, or $bot$ while it is not yet known.],
+  I: $I = h : NN^n$,
+  X: $X = X_n = [0..n) -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(h) = {i |-> bot | i in [0..n)}$,
+  F: $F = F_h, quad F_h (x)_i = cases(
     h_0 & "if " i = 0,
     max(x_0, h_1) & "if " i = 1,
     max(x_(i-1), h_i + x_(i-2)) & "if " i >= 2
-  ) \
-  pi(x) = x_(n-1)
-$
-
+  )$,
+  pi: $pi(x) = x_(n-1)$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = "rob"(i)$,
+)
 Cell $x_i$ chooses between skipping house $i$ (keep $x_(i-1)$) and robbing it (add $h_i$ to
-$x_(i-2)$). It becomes defined one step after $x_(i-1)$, so the table fills left to right and the
-fixed point is reached after $n$ steps.
+$x_(i-2)$); it becomes defined, with exactly $"rob"(i)$, one step after $x_(i-1)$ and never
+changes, so each changing step lowers $sigma$ and keeps $"Inv"$, and after $n$ steps
+$pi(x) = "rob"(n-1)$.
 
 #let robber-mc(houses) = {
   let n = houses.len()
@@ -63,6 +69,7 @@ fixed point is reached after $n$ steps.
     pi,
     I_h: h => vec-view(h, none),
     X_h: (x, diff_mask: none) => vec-view(x, diff_mask, labels: labels, width: 2.2em),
+    F_name: [$F_h$],
     pi_name: [$mpi$],
     group-size: 3,
     spacing: (8mm, 10mm),

@@ -26,15 +26,22 @@ _primitives_: concatenation ($+$) is strict, i.e. $bot + ell = ell + bot = bot$.
 The tree is an array of nodes $T_i = (v_i, l_i, r_i)$ with $l_i, r_i in [0..n) union {"nil"}$ and root $0$.
 For readability write $x_"nil" = []$.
 
-$
-  I = (ZZ times [0..n)_"nil" times [0..n)_"nil")^n quad quad X_T = [0..n) -> (ZZ^*)_bot quad quad A = ZZ^* \
-  rho(T) = {i -> bot | i in [0..n)} \
-  F_T (x)_i = x_(l_i) + [v_i] + x_(r_i) \
-  pi(x) = x_0
-$
-
-A leaf is defined after one step; an inner node one step after both of its children. The
-traversal of the root therefore appears after (height $+ 1$) steps.
+#mc-spec(
+  state: [Cell $x_i$ of the state holds the inorder list of the subtree rooted at node $i$, or $bot$
+    while some node of that subtree is still unresolved.],
+  I: $I = (ZZ times [0..n)_"nil" times [0..n)_"nil")^n$,
+  X: $X = X_T = [0..n) -> (ZZ^*)_bot$,
+  A: $A = ZZ^*$,
+  rho: $rho(T) = {i |-> bot | i in [0..n)}$,
+  F: $F = F_T, quad F_T (x)_i = x_(l_i) + [v_i] + x_(r_i)$,
+  pi: $pi(x) = x_0$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = "inorder"(i)$,
+)
+Since $+$ is strict, a node becomes defined only once both children are, and then with the value
+$"inorder"(i)$; defined cells never change, so every non-fixed step defines a new node and decreases
+$sigma$, and at the fixed point $pi(x) = "inorder"(0)$. A leaf is defined after one step and an inner
+node one step after both of its children, so the root appears after (height $+ 1$) steps.
 
 #let inorder-mc(tree) = {
   let sub = (x, c) => if c == none { () } else { x.at(c) }
@@ -70,6 +77,7 @@ traversal of the root therefore appears after (height $+ 1$) steps.
     I_h: T => draw(none, none),
     X_h: X_h,
     A_h: show-list,
+    F_name: [$F_T$],
     pi_name: [$mpi$],
     group-size: 2,
     spacing: (12mm, 8mm),

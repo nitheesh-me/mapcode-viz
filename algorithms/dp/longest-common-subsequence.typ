@@ -27,22 +27,28 @@ Examples:
 
 _primitives_: `sum`($+$) and `max` are strict, i.e. they return $bot$ if any argument is $bot$.
 
-$
-  I = Sigma^* times Sigma^* quad quad X_(S,T) = [0..m] times [0..n] -> NN_bot quad quad A = NN
-  quad quad "where" m = |S|, n = |T| \
-  rho(S, T) = {(i, j) -> bot | i in [0..m], j in [0..n]} \
-  F_(S,T)(x)_(i,j) = cases(
+#mc-spec(
+  state: [With $m = |S|$ and $n = |T|$, the state is a table $x$ with one cell for every pair of
+    prefix lengths; cell $(i, j)$ holds the LCS length of the prefixes $S_1 dots S_i$ and
+    $T_1 dots T_j$ once it is known, and $bot$ before that.],
+  I: $I = Sigma^* times Sigma^*$,
+  X: $X = X_(S,T) = [0..m] times [0..n] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(S, T) = {(i, j) |-> bot}$,
+  F: $F = F_(S,T), quad F_(S,T)(x)_(i,j) = cases(
     0 & "if " i = 0 or j = 0,
     x_(i-1,j-1) + 1 & "if " S_i = T_j,
     max(x_(i-1,j), x_(i,j-1)) & "otherwise"
-  ) \
-  pi_(S,T)(x) = x_(m,n)
-$
-
-The border row and column are filled by the first step. An interior cell becomes defined as
-soon as its diagonal neighbour (on a match) or its upper and left neighbours (otherwise) are
-defined, so the defined region grows along anti-diagonals and the fixed point is reached after
-at most $m + n$ steps.
+  )$,
+  pi: $pi = pi_(S,T) = x |-> x_(m,n)$,
+  sigma: $sigma(x) = |{(i, j) | x_(i,j) = bot}|$,
+  inv: $"Inv"(x) <=> forall (i, j) . x_(i,j) != bot => x_(i,j) = "L"(i, j)$,
+)
+Since $+$ and $max$ are strict, $F$ defines a cell only from defined neighbours, which by
+$"Inv"$ hold their final $"L"$ values, so a defined cell is recomputed to the same value and
+never changes; every step that changes $x$ therefore defines a new cell and lowers $sigma$, and
+at the fixed point every cell is defined (the table fills along anti-diagonals), so
+$pi_(S,T)(x) = "L"(m, n)$.
 
 #let lcs-mc(inst) = {
   let (S, T) = inst

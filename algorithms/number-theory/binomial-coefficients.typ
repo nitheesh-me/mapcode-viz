@@ -30,24 +30,28 @@ Examples:
 
 _primitives_: `sum`($+$) is strict, i.e. $bot + v = v + bot = bot$.
 
-The state is the top-left corner of Pascal's triangle: rows $0..n$ and columns $0..k$. Cells
-with $j > i$ lie outside the triangle and stay $bot$ (shaded in the figure).
-
-$
-  I = {(n, k) in NN times NN | k <= n} quad quad X_(n,k) = [0..n] times [0..k] -> NN_bot
-  quad quad A = NN \
-  rho(n, k) = {(i, j) -> bot | i in [0..n], j in [0..k]} \
-  F(x)_(i,j) = cases(
+#mc-spec(
+  state: [The state is the top-left corner of Pascal's triangle, rows $0..n$ and columns $0..k$:
+    cell $(i, j)$ holds $binom(i, j)$ once it is known and $bot$ before. Cells with $j > i$ lie
+    outside the triangle and stay $bot$ (shaded in the figure).],
+  I: $I = {(n, k) in NN times NN | k <= n}$,
+  X: $X = X_(n,k) = [0..n] times [0..k] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(n, k)_(i,j) = bot$,
+  F: $F(x)_(i,j) = cases(
     1 & "if " j = 0 "or" j = i,
     x_(i-1,j-1) + x_(i-1,j) & "if " 0 < j < i,
     bot & "if " j > i
-  ) \
-  pi_(n,k) (x) = x_(n,k)
-$
-
-The first step fills the left edge and the diagonal of the triangle. An interior cell needs
-both cells above it, so row $i$ is completed at step $i$ and the fixed point is reached after
-$n$ steps.
+  )$,
+  pi: $pi = pi_(n,k) = x |-> x_(n,k)$,
+  sigma: $sigma(x) = |{(i, j) | x_(i,j) = bot}|$,
+  inv: $"Inv"(x) <=> forall i, j . x_(i,j) != bot => x_(i,j) = binom(i, j)$,
+)
+The first step fills the left edge and the diagonal, and an interior cell is defined once both
+cells above it are, so row $i$ is completed at step $i$; defined cells never change, so every
+changing step defines new cells and $sigma$ drops (the cells with $j > i$ stay $bot$ and are
+simply never counted down). $F$ is Pascal's rule, which preserves $"Inv"$, and at the fixed point
+$x_(n,k) = binom(n, k)$ is defined, which $pi$ returns.
 
 #let binom-mc(inst) = {
   let (n, k) = inst

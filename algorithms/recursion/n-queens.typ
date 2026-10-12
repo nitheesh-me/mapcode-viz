@@ -18,7 +18,7 @@ Let $f(k)$ be the set of safe placements in rows $0..k-1$:
 $
   f(k) = cases(
     {()} & "if " k = 0,
-    {q + (c) | q in f(k-1), c in [0..n-1], "safe"(q, c)} & "if " k > 0
+    {q plus.double (c) | q in f(k-1), c in [0..n-1], "safe"(q, c)} & "if " k > 0
   )
 $
 The solutions are $f(n)$.
@@ -32,19 +32,27 @@ Examples:
 
 _primitives_: set union and the `safe` test.
 
-$
-  I = NN quad quad X_n = [0..n] -> "Set"("Seq"[0..n-1])_bot quad quad A = "Set"("Seq"[0..n-1]) \
-  rho(n) = {k -> bot | k in [0..n]} \
-  F_n (x)_k = cases(
+#mc-spec(
+  state: [The state $x$ is a table indexed by the row count $k in [0..n]$; cell $x_k$ holds the set
+    $f(k)$ of safe placements of queens in rows $0..k-1$, or $bot$ while it is not yet computed.],
+  I: $I = NN$,
+  X: $X = X_n = [0..n] -> "Set"([0..n-1]^*)_bot$,
+  A: $A = "Set"([0..n-1]^*)$,
+  rho: $rho(n) = {k |-> bot | k in [0..n]}$,
+  F: $F = F_n, quad F_n (x)_k = cases(
     {()} & "if " k = 0,
-    {q + (c) | q in x_(k-1), c in [0..n-1], "safe"(q, c)} & "if " k > 0 and x_(k-1) != bot,
-    bot & "otherwise"
-  ) \
-  pi_n (x) = x_n
-$
-
-Row $k$ is filled one step after row $k-1$, so the fixed point is reached after $n + 1$ steps.
-Partial placements that cannot be extended (dead ends) simply produce no children.
+    "ext"(x_(k-1)) & "if " k > 0
+  )$,
+  pi: $pi = pi_n = x |-> x_n$,
+  sigma: $sigma(x) = |{k | x_k = bot}|$,
+  inv: $"Inv"(x) <=> forall k . x_k != bot => x_k = f(k)$,
+)
+where $"ext"(Q) = {q plus.double (c) | q in Q, c in [0..n-1], "safe"(q, c)}$, extended strictly by
+$"ext"(bot) = bot$. A cell is defined only from a defined predecessor, and $"ext"(f(k-1)) = f(k)$, so every defined cell equals $f(k)$ and never
+changes again: $"Inv"$ is preserved, and every step that changes the state defines a new cell,
+decreasing $sigma$. Row $k$ is filled one step after row $k-1$, so the fixed point is reached after
+$n + 1$ steps with every cell defined and $pi_n (x) = f(n)$. Partial placements that cannot be
+extended (dead ends) simply produce no children.
 
 #let queens-mc(n) = {
   let safe = (q, c) => {
@@ -101,6 +109,7 @@ Partial placements that cannot be extended (dead ends) simply produce no childre
       boards(sols),
       align(center, text(size: 0.85em)[#sols.len() solutions]),
     ),
+    F_name: [$F_#n$],
     pi_name: [$mpi_#n$],
     dim: 1,
     group-size: 3,

@@ -23,21 +23,23 @@ Examples:
 
 _primitives_: `add`($+$) is strict, i.e. $bot + v = v + bot = bot$.
 
-The input array is instance data: it lives in $I$ and reaches $F$ through the closure $F_a$;
-the state holds only the prefix sums.
-
-$
-  I = ZZ^* quad quad X_n = [0..n] -> ZZ_bot quad quad A = ZZ^(n+1) \
-  rho(a) = {i -> bot | i in [0..n]} quad "where" n = |a| \
-  F_a (x)_i = cases(
-    0 & "if " i = 0,
-    x_(i-1) + a_(i-1) & "if " i >= 1
-  ) \
-  pi(x) = [x_0, ..., x_n]
-$
-
-Cell $i$ becomes defined one step after cell $i-1$, so the table fills left to right and the
-fixed point is reached after $n+1$ steps.
+#mc-spec(
+  state: [For a fixed array $a$ of length $n$, cell $i$ of the table $x$ holds the prefix sum
+    $S(i) = a_0 + dots + a_(i-1)$ once it is defined and $bot$ before that. The array itself is
+    instance data: it lives in $I$ and reaches $F$ through the closure $F_a$.],
+  I: $I = ZZ^*$,
+  X: $X = X_n = [0..n] -> ZZ_bot$,
+  A: $A = ZZ^(n+1)$,
+  rho: $rho(a) = {i |-> bot | i in [0..|a|]}$,
+  F: $F = F_a, quad F_a (x)_i = cases(0 & "if " i = 0, x_(i-1) + a_(i-1) & "if " i >= 1)$,
+  pi: $pi(x) = [x_0, ..., x_n]$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = S(i)$,
+)
+Cell $i$ becomes defined one step after cell $i-1$ and never changes afterwards, so every
+non-fixed step defines a new cell and $sigma$ drops by one; $F_a$ only writes $0 = S(0)$ or
+$S(i-1) + a_(i-1) = S(i)$, so $"Inv"$ is preserved, and at the fixed point ($sigma = 0$, after
+$n+1$ steps) $pi(x) = [S(0), ..., S(n)]$.
 
 #let prefix-mc(a) = {
   let n = a.len()

@@ -28,25 +28,37 @@ _primitives_: `mod`, `max` and `min` are strict, i.e. they return $bot$ if an ar
 $bot$. For a pair $p = (u, v)$ write $p_1 = u$ and $p_2 = v$.
 
 The state records the whole remainder sequence, one pair per cell. Its length must be fixed by
-$rho$, so we use Lamé's bound: if Euclid performs $N$ division steps on $(a, b)$ with
+$rho$, so we use Lamé's bound @lame1844 @knuth1997[§4.5.3]: if Euclid performs $N$ division steps on $(a, b)$ with
 $a >= b >= 1$, then $b >= "Fib"(N+1) >= phi^(N-1)$, where $phi = (1 + sqrt(5)) slash 2$. Hence
 $N <= L(b) = floor(log_phi b) + 1$ (and $L(0) = 0$), and cells $0..L$ always suffice.
 Consecutive Fibonacci numbers meet the bound exactly.
 
-$
-  I = NN times NN quad quad X_(a,b) = [0..L] -> (NN times NN)_bot quad quad A = NN
-  quad quad "where" L = L(min(a, b)) \
-  rho(a, b) = {i -> bot | i in [0..L]} \
-  F_(a,b)(x)_i = cases(
+#mc-spec(
+  state: [For fixed $(a, b)$, cell $i$ of the table holds the $i$-th pair $(u, v)$ of the
+    remainder sequence, from $(max(a, b), min(a, b))$ down to the final pair $(g, 0)$; cells past
+    that pair, and cells not reached yet, are $bot$.],
+  I: $I = NN times NN$,
+  X: $X = X_(a,b) = [0..L] -> (NN times NN)_bot$,
+  A: $A = NN$,
+  rho: $rho(a, b)_i = bot$,
+  F: $F = F_(a,b), quad F_(a,b)(x)_i = cases(
     (max(a, b), min(a, b)) & "if " i = 0,
-    ((x_(i-1))_2, space (x_(i-1))_1 mod (x_(i-1))_2) & "if " i >= 1 "and" (x_(i-1))_2 != 0,
-    bot & "if " i >= 1 "and" (x_(i-1) = bot "or" (x_(i-1))_2 = 0)
-  ) \
-  pi(x) = (x_i)_1 quad "for the unique" i "with" x_i != bot "and" (x_i)_2 = 0
-$
+    "nx"(x_(i-1)) & "if " i >= 1
+  )$,
+  pi: $pi(x) = (x_t)_1$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = r_i and gcd(x_i) = gcd(a, b)$,
+)
+where $L = L(min(a, b))$, $t$ is the index of the final pair ($x_t != bot$, $(x_t)_2 = 0$),
+and $"nx"$ is one division step, $"nx"(u, v) = (v, u mod v)$ for $v != 0$, with
+$"nx"(u, 0) = "nx"(bot) = bot$; $r_i$ is the remainder sequence
+$r_0 = (max(a, b), min(a, b))$, $r_i = "nx"(r_(i-1))$, and $gcd(x_i)$ is the gcd of the pair.
 
-Each step of $F$ defines one more pair of the remainder sequence. Once a pair $(g, 0)$ appears,
-every later cell stays $bot$, so the state stops changing; $pi$ reads $g$ off that last pair.
+Cell $0$ is constant and cell $i$ reads only cell $i - 1$, so a defined cell never changes and
+every changing step defines a new pair, which makes $sigma$ drop; cells after the final pair
+$(g, 0)$ stay $bot$ forever, so $sigma$ need not reach $0$. Each new pair is the next $r_i$, and
+Euclid's identity $gcd(u, v) = gcd(v, u mod v)$ keeps $gcd(x_i) = gcd(a, b)$; Lamé's bound
+puts the final pair $(g, 0) = (gcd(a, b), 0)$ inside $[0..L]$, so $pi$ returns $gcd(a, b)$.
 
 #let gcd-mc(inst) = {
   let (a, b) = inst
@@ -76,7 +88,7 @@ every later cell stays $bot$, so the state stops changing; $pi$ reads $g$ off th
       width: 3.6em,
       fmt: p => if p == none { botc } else { $(#p.at(0), #p.at(1))$ },
     ),
-    F_name: [$F_(a,b)$],
+    F_name: [$F_(#a, #b)$],
     pi_name: [$mpi$],
     dim: 1,
     group-size: 6,

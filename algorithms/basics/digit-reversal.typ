@@ -26,18 +26,21 @@ Examples:
 
 _primitives_: integer division `div`, remainder `mod`, $+$ and $dot$.
 
-$
-  I = NN quad quad X = NN times NN quad quad A = NN \
-  rho(n) = (n, 0) \
-  F(n, r) = cases(
-    (n "div" 10, 10 r + n mod 10) & "if " n > 0,
-    (n, r) & "if " n = 0
-  ) \
-  pi(n, r) = r
-$
-
-Each step pops the last digit of $n$ and pushes it onto $r$. When $n = 0$ the state is a
-fixed point, reached after one step per digit.
+#mc-spec(
+  state: [The state $(n, r)$ holds the number $n$ whose digits are still to be reversed and the
+    accumulator $r$ holding the digits already popped, in reverse order.],
+  I: $I = NN$,
+  X: $X = NN times NN$,
+  A: $A = NN$,
+  rho: $rho(n) = (n, 0)$,
+  F: $F(n, r) = cases((n "div" 10, 10 r + n mod 10) & "if " n > 0, (n, r) & "if " n = 0)$,
+  pi: $pi(n, r) = r$,
+  sigma: $sigma(n, r) = n$,
+  theta: $theta(n, r) = "rev"'(n, r)$,
+)
+For $n > 0$ we have $n "div" 10 < n$, so $sigma$ strictly decreases; $theta(rho(n)) =
+"rev"'(n, 0) = "rev"(n)$, one step of $F$ is exactly one unfolding of $"rev"'$ so $theta$ is
+unchanged, and once $n = 0$ (one step per digit) $theta(0, r) = r = pi(0, r)$.
 
 #let rev-mc(n) = {
   let rho = n => (n, 0)

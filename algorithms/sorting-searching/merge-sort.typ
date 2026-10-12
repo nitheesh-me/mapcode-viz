@@ -24,22 +24,26 @@ _primitives_: `merge`, which combines two sorted sequences into one sorted seque
 $"merge_pairs"(a, s)$ merges the runs $a[2k s .. (2k+1)s)$ and $a[(2k+1)s .. (2k+2)s)$ for every
 $k$ (a trailing run without a partner is copied unchanged).
 
-The state is the current run width $s$ together with the array, in which every block
-$a[k s .. (k+1)s)$ is sorted.
-
-$
-  I = "Seq"[ZZ] quad quad X = NN times "Seq"[ZZ] quad quad A = "Seq"[ZZ] \
-  rho(a) = (1, a) \
-  F_n (s, a) = cases(
-    (s, a) & "if " s >= n,
-    (2s, "merge_pairs"(a, s)) & "if " s < n
-  ) quad "where " n = |a| \
-  pi(s, a) = a
-$
-
-Each step doubles $s$, so $F$ reaches its fixed point after $ceil(log_2 n)$ steps (immediately
-for $n <= 1$, including the empty array). The invariant "every block of width $s$ is sorted"
-holds in every state; at the fixed point $s >= n$, so the whole array is one sorted block.
+#mc-spec(
+  state: [The state $(s, a)$ holds the current run width $s >= 1$ and the array $a$, in which every
+    run $a[k s .. (k+1)s)$ (the last one possibly shorter) is sorted.],
+  I: $I = ZZ^*$,
+  X: $X = {(s, a) in NN times ZZ^* | s >= 1, "runs"_s (a) "sorted"}$,
+  A: $A = ZZ^*$,
+  rho: $rho(a) = (1, a)$,
+  F: $F = F_n = (s, a) |-> cases((s, a) & "if " s >= n, (2s, "merge_pairs"(a, s)) & "if " s < n)$,
+  pi: $pi(s, a) = a$,
+  sigma: $sigma(s, a) = max(n - s, 0)$,
+  theta: $theta(s, a) = "sort"(a)$,
+)
+where $n = |a|$, which no step changes, $"runs"_s (a)$ are the blocks $a[k s .. (k+1)s)$, and
+$"sort"(a)$ is the permutation $a'$ of the formal definition. Runs of width $1$ are trivially sorted, and merging two
+sorted runs gives a sorted run of width $2s$, so $F$ stays in $X$. On a step with $s < n$ the
+bound drops from $n - s$ to $max(n - 2s, 0) < n - s$ since $s >= 1$. `merge_pairs` only permutes
+$a$, and the sorted permutation of a multiset is unique, so $"sort"(a)$ never changes; it is
+$"sort"$ of the input initially, and at the fixed point $s >= n$ the single run $a$ is sorted, so
+$theta = a = pi$. The fixed point is reached after $ceil(log_2 n)$ steps (immediately for
+$n <= 1$, including the empty array).
 
 #pseudo[
   + $s <- 1$
@@ -108,6 +112,7 @@ holds in every state; at the fixed point $s >= n$, so the whole array is one sor
     I_h: a => [$a = (#a.map(str).join(", "))$],
     X_h: X_h,
     A_h: a => [$(#a.map(str).join(", "))$],
+    F_name: [$F_#inst.len()$],
     pi_name: [$mpi$],
     dim: 2,
     group-size: 2,

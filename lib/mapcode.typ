@@ -173,18 +173,29 @@
           let idx = (group_idx - 1) * group-size + i
           let x_pos = if idx < xs.len() - 1 { i } else { group-size }
           let y_pos = if (idx == xs.len() - 1 and i == 0) { group_idx - 1 } else { group_idx }
-          node((x_pos, y_pos), annotate(x_i, X_h(x_i, diff_mask: diffs.at(idx))))
+          node((x_pos, y_pos), annotate(x_i, X_h(x_i, diff_mask: diffs.at(idx))), name: label("s" + str(idx)))
         })
     })
     .flatten()
 
-  // F edges between consecutive states; the long edge wrapping to the next row is left
-  // unlabelled so its label does not collide with the nodes it crosses.
+  // F edges between consecutive states. The edge wrapping to the next row runs from the
+  // lower-left corner of the last state of a row to the upper-right corner of the first state
+  // of the next row, so it stays in the gap between the rows instead of crossing other nodes.
   let chain = ()
   for (idx, n) in grouped_nodes.enumerate() {
     if idx > 0 {
       let wraps = calc.rem(idx, group-size) == 0 and idx < xs.len() - 1
-      chain.push(if wraps { edge("->", stroke: 0.5pt + luma(120)) } else { edge(F_name, "->") })
+      chain.push(if wraps {
+        edge(
+          label("s" + str(idx - 1) + ".south-west"),
+          label("s" + str(idx) + ".north-east"),
+          F_name,
+          "->",
+          label-side: center,
+          label-pos: 0.5,
+          label-fill: white,
+        )
+      } else { edge(F_name, "->") })
     }
     chain.push(n)
   }

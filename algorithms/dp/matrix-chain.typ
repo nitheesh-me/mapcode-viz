@@ -30,19 +30,24 @@ Examples:
 _primitives_: `min`, `sum`($+$) and `mul`($dot$) are strict: $4 + bot = bot$ and
 $min {3, 2, bot} = bot$.
 
-$
-  I = p : NN^(n+1) quad quad X_n = {(i, j) | 1 <= i <= j <= n} -> NN_bot quad quad A = NN \
-  rho(p) = {(i, j) -> bot | 1 <= i <= j <= n} \
-  F_p (x)_(i,j) = cases(
-    0 & "if " i = j,
-    min_(i <= k < j) (x_(i,k) + x_(k+1,j) + p_(i-1) p_k p_j) & "if " i < j
-  ) \
-  pi_n (x) = x_(1,n)
-$
-
-Because $min$ is strict, cell $(i, j)$ stays $bot$ until all of its splits are known. The table
-therefore fills one diagonal per step: the chains of length $ell$ are settled by step $ell$, and
-the fixed point is reached after $n$ steps. The lower triangle ($i > j$) lies outside the domain.
+#mc-spec(
+  state: [The state is an upper-triangular table $x$: cell $x_(i,j)$ holds the cheapest cost
+    $m(i, j)$ of computing $M_i dots M_j$, or $bot$ while it is not yet known.],
+  I: $I = p : NN^(n+1)$,
+  X: $X = X_n = {(i, j) | 1 <= i <= j <= n} -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(p) = {(i, j) |-> bot | 1 <= i <= j <= n}$,
+  F: $F = F_p, quad F_p (x)_(i,j) = cases(0 & "if " i = j, min_(i <= k < j) s_k & "if " i < j)$,
+  pi: $pi = pi_n = x |-> x_(1,n)$,
+  sigma: $sigma(x) = |{(i, j) | x_(i,j) = bot}|$,
+  inv: $"Inv"(x) <=> forall (i, j) . x_(i,j) != bot => x_(i,j) = m(i, j)$,
+)
+where $s_k = x_(i,k) + x_(k+1,j) + p_(i-1) p_k p_j$ is the cost of splitting $M_i dots M_j$
+after $M_k$. Because $min$ is strict, cell $(i, j)$ stays $bot$ until all of its splits are known and then gets
+exactly $m(i, j)$, never to change again; so each changing step defines new cells ($sigma$ drops)
+and keeps $"Inv"$. The table fills one diagonal per step, the chains of length $ell$ being settled
+by step $ell$, so after $n$ steps $pi_n (x) = m(1, n)$. The lower triangle ($i > j$) lies outside
+the domain.
 
 #let mcm-mc(p) = {
   let n = p.len() - 1

@@ -26,26 +26,31 @@ Examples:
 
 _primitives_: comparison ($<$, $=$) and arithmetic ($+$, $-$, $floor(dot / 2)$) on integers.
 
-The state is the current search interval $[l, h]$ together with a result slot $r$ that stays
-$bot$ until the search ends. The upper end $h$ can drop to $-1$ (and $l$ can reach $n$) when the
-target lies outside the array, so both live in $ZZ$.
-
-$
-  I = (a: ZZ^n "sorted", t: ZZ) quad quad X = ZZ times ZZ times ({-1} union NN)_bot quad quad A = {-1} union NN \
-  rho(a, t) = (0, n-1, bot) \
-  F_(a,t)(l, h, r) = cases(
+#mc-spec(
+  state: [The state $(l, h, r)$ holds the current search interval $[l, h]$ and the result slot
+    $r$, which stays $bot$ until the search ends. The upper end $h$ can drop to $-1$ (and $l$ can
+    reach $n$) when the target lies outside the array, so both live in $ZZ$.],
+  I: $I = ZZ^n_"sorted" times ZZ$,
+  X: $X = ZZ times ZZ times ({-1} union NN)_bot$,
+  A: $A = {-1} union NN$,
+  rho: $rho(a, t) = (0, n-1, bot)$,
+  F: $F = F_(a,t) = (l, h, r) |-> cases(
     (l, h, r) & "if " r != bot,
-    (l, h, -1) & "if " r = bot and l > h,
-    (l, h, m) & "if " r = bot and l <= h and a[m] = t,
-    (l, m-1, bot) & "if " r = bot and l <= h and a[m] > t,
-    (m+1, h, bot) & "if " r = bot and l <= h and a[m] < t
-  ) quad "where " m = floor((l + h) / 2) \
-  pi(l, h, r) = r
-$
-
-Each step of $F$ halves the interval $[l, h]$ until either $a[m] = t$ or the interval is empty;
-then $r$ is set and $F$ leaves the state unchanged. The fixed point is reached after at most
-$floor(log_2 n) + 2$ steps.
+    (l, h, -1) & "if " l > h,
+    (l, h, m) & "if " a[m] = t,
+    (l, m-1, bot) & "if " a[m] > t,
+    (m+1, h, bot) & "otherwise"
+  )$,
+  pi: $pi(l, h, r) = r$,
+  sigma: $sigma(l, h, r) = cases(|[l..h]| + 1 & "if " r = bot, 0 & "otherwise")$,
+  theta: $theta(l, h, r) = cases("bs"(l, h) & "if " r = bot, r & "otherwise")$,
+)
+where $m = floor((l + h) / 2)$, the cases of $F$ are tried top to bottom,
+$|[l..h]| = max(h - l + 1, 0)$ is the number of indices left, and $"bs"$ is the recursion of the formal definition for the fixed
+$a$ and $t$. Each probe at least halves the interval, so $sigma$ drops strictly, and setting $r$
+drops it from at least $1$ to $0$; $theta$ is $"bs"(0, n-1)$ initially, each case of $F$ is one
+unfolding of $"bs"$ (so $theta$ is unchanged), and at the fixed point $r != bot$ gives
+$theta = r = pi$. The fixed point is reached after at most $floor(log_2 n) + 2$ steps.
 
 #pseudo[
   + $l <- 0$, $h <- n - 1$, $r <- bot$
@@ -89,6 +94,7 @@ $floor(log_2 n) + 2$ steps.
     I_h: ((arr, target)) => [$a = (#arr.map(str).join(", "))$ \ $t = #target$],
     X_h: X_h,
     A_h: a => [$#a$],
+    F_name: [$F_(a,t)$],
     pi_name: [$mpi$],
     dim: 1,
     group-size: group-size,

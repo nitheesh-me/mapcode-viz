@@ -52,21 +52,23 @@ Examples (the counts are computed by the mapcode below):
 _primitives_: `add`($+$) and `mul`($dot$) are strict, i.e. $bot + v = v + bot = bot$; the
 brackets $[dots]$ only read $s$ and are always defined.
 
-$
-  I = s : {#raw("0"), dots, #raw("9")}^n quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
-  rho(s) = {i -> bot | i in [0..n]} \
-  F_s (x)_i = cases(
-    1 & "if " i = 0,
-    [s_1 != #raw("0")] & "if " i = 1,
-    bot & "if " i >= 2 " and " (x_(i-1) = bot " or " x_(i-2) = bot),
-    [s_i != #raw("0")] dot x_(i-1) + [10 <= s_(i-1) s_i <= 26] dot x_(i-2) & "otherwise"
-  ) \
-  pi_n (x) = x_n
-$
-
-Cells $0$ and $1$ are set in the first step; after that cell $i$ becomes defined one step after
-cell $i - 1$, so the fixed point is reached after $n$ steps. Each cell is drawn under its index
-$i$ and the digit $s_i$ that ends the prefix.
+#mc-spec(
+  state: [The state is a table $x$ indexed by prefix length: cell $x_i$ holds the number $d(i)$
+    of decodings of $s_1 dots s_i$, or $bot$ while it is not yet known.],
+  I: $I = s : {#raw("0"), dots, #raw("9")}^n$,
+  X: $X = X_n = [0..n] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(s) = {i |-> bot | i in [0..n]}$,
+  F: $F = F_s, quad F_s (x)_i = cases(1 & "if " i = 0, o_1 & "if " i = 1, o_i dot x_(i-1) + t_i dot x_(i-2) & "if " i >= 2)$,
+  pi: $pi = pi_n = x |-> x_n$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = d(i)$,
+)
+where $o_i = [s_i != #raw("0")]$ and $t_i = [10 <= s_(i-1) s_i <= 26]$; by strictness cell
+$i >= 2$ stays $bot$ while $x_(i-1)$ or $x_(i-2)$ is $bot$. Once defined, a cell holds exactly
+$d(i)$ and never changes, so each changing step lowers $sigma$ and keeps $"Inv"$. Cells $0$ and
+$1$ are set in the first step and cell $i$ one step after cell $i - 1$, so after $n$ steps
+$pi_n (x) = d(n)$. Each cell is drawn under its index $i$ and the digit $s_i$ that ends the prefix.
 
 #let decode-mc(s) = {
   let n = s.len()

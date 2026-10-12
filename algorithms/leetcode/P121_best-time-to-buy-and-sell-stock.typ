@@ -26,25 +26,27 @@ Constraints: $1 <= n <= 10^5$ and $0 <= p_i <= 10^4$.
 
 _primitives_: `max` and `sub`($-$) are strict, i.e. they return $bot$ if any argument is $bot$.
 
-Scan the days backwards. Cell $i$ holds a pair $(m_i, q_i)$:
-- $m_i$ is the highest price on day $i$ or later, i.e. the best price at which a stock bought
-  before day $i$ can still be sold ($m_n = 0$: nothing left to sell on);
-- $q_i$ is the best profit from buying and selling within days $i, dots, n - 1$.
-
-Buying on day $i$ and selling at the best later price earns $m_(i+1) - p_i$.
-
-$
-  I = NN^n quad quad X_p = [0..n] -> (NN times NN)_bot quad quad A = NN \
-  rho(p) = {i -> bot | i in [0..n]} \
-  F_p (x)_i = cases(
-    (0, 0) & "if " i = n,
-    (max(m_(i+1), p_i), thin max(q_(i+1), m_(i+1) - p_i)) & "if " i < n "where" (m_(i+1), q_(i+1)) = x_(i+1)
-  ) \
-  pi(x) = q_0 quad "where" (m_0, q_0) = x_0
-$
-
-Cell $n$ is set in the first step and every cell $i$ one step after cell $i+1$, so the table
-fills right to left and reaches its fixed point after $n + 1$ steps.
+#mc-spec(
+  state: [Scanning the days backwards, cell $x_i$ of the state holds the pair $(m_i, q_i)$: $m_i$ is
+    the highest price on day $i$ or later ($m_n = 0$: nothing left to sell on), and $q_i$ is the
+    best profit from buying and selling within days $i, dots, n - 1$; it is $bot$ until cell
+    $i + 1$ is known.],
+  I: $I = NN^n$,
+  X: $X = X_p = [0..n] -> (NN times NN)_bot$,
+  A: $A = NN$,
+  rho: $rho(p) = {i |-> bot | i in [0..n]}$,
+  F: $F = F_p, quad F_p (x)_i = cases((0, 0) & "if" i = n, "st"_i (x_(i+1)) & "if" i < n)$,
+  pi: $pi(x) = q_0$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = (M(i), "profit"(p_([i..n))))$,
+)
+where $"st"_i (m, q) = (max(m, p_i), thin max(q, m - p_i))$ (strict in its argument), $(m_0, q_0) = x_0$, and $M(i) = max({0} union {p_k | i <= k < n})$. Cell $n$ is set to
+$(0, 0) = (M(n), "profit"([]))$ in the first step, and by strictness cell $i$ is set only once
+$x_(i+1) = (m_(i+1), q_(i+1))$ is; then it gets $M(i) = max(M(i+1), p_i)$ and $"profit"(p_([i..n)))$, since the best
+trade from day $i$ either starts later or buys on day $i$ and sells at the best later price, earning
+$m_(i+1) - p_i$. Defined cells never change, so each non-fixed step defines a new cell and decreases
+$sigma$; the table fills right to left, reaches its fixed point after $n + 1$ steps, and then
+$pi(x) = "profit"(p)$.
 
 #let stock-mc(prices) = {
   let n = prices.len()
@@ -80,6 +82,7 @@ fills right to left and reaches its fixed point after $n + 1$ steps.
     pi,
     I_h: p => vec-view(p, none),
     X_h: X_h,
+    F_name: [$F_p$],
     pi_name: [$mpi$],
     group-size: 2,
     spacing: (10mm, 8mm),

@@ -421,3 +421,277 @@ def factorialMCI' (n : Nat) : MapcodeInv where
       · simp [hk, hinv]
 
 end MapcodeInv.Example
+
+/-! ## Bubble sort with the full state
+
+`bubble` is no longer a primitive: one `F` step performs a single compare-and-swap.
+The state `(u, j, l)` holds the length `u` of the unsorted prefix, the position `j` of the
+next comparison, and the list. -/
+namespace Mapcode.BubbleFull
+
+open MapCodeUnverified.Example (bubble)
+
+/-- Compare-and-swap at positions `j`, `j+1` (identity when out of range). -/
+def cswap (j : Nat) (l : List Nat) : List Nat :=
+  match l.drop j with
+  | x :: y :: rest => l.take j ++ (if x ≤ y then [x, y] else [y, x]) ++ rest
+  | _ => l
+
+/-- Specification of one pass restricted to the prefix of length `u`. -/
+def bubblePrefix (u : Nat) (l : List Nat) : List Nat := bubble (l.take u) ++ l.drop u
+
+/-- Recursive bubble sort with shrinking passes: the specification. -/
+def bsU : Nat → List Nat → List Nat
+  | u + 2, l => bsU (u + 1) (bubblePrefix (u + 2) l)
+  | _, l => l
+
+/-- What remains of the current pass from position `j` within the prefix of length `u`. -/
+def finishPass (u j : Nat) (l : List Nat) : List Nat :=
+  let j' := min j u
+  l.take j' ++ bubble ((l.drop j').take (u - j')) ++ l.drop u
+
+/-! ### One pass as a mapcode -/
+
+@[reducible]
+def bubblePassMC : MapCodeUnverified where
+  I := List Nat
+  A := List Nat
+  X := Nat × List Nat
+  ρ l := (0, l)
+  F | (j, l) => if j + 1 < l.length then (j + 1, cswap j l) else (j, l)
+  π := Prod.snd
+
+#guard bubblePassMC.run [5, 1, 4, 2, 8] = bubble [5, 1, 4, 2, 8]
+
+/-! ### Full bubble sort as a mapcode -/
+
+@[reducible]
+def bubbleSortMC : MapCodeUnverified where
+  I := List Nat
+  A := List Nat
+  X := Nat × Nat × List Nat
+  ρ l := (l.length, 0, l)
+  F | (u, j, l) =>
+      if u ≤ 1 then (u, j, l)
+      else if j + 1 < u then (u, j + 1, cswap j l)
+      else (u - 1, 0, l)
+  π | (_, _, l) => l
+
+#guard bubbleSortMC.run [5, 1, 4, 2, 8] = [1, 2, 4, 5, 8]
+#guard bubbleSortMC.run [4, 3, 1, 2] = [1, 2, 3, 4]
+#guard bubbleSortMC.run [] = []
+
+/-! ### Lemmas -/
+
+theorem bubble_short : ∀ l : List Nat, l.length ≤ 1 → bubble l = l
+  | [], _ => by unfold bubble; rfl
+  | [_], _ => by unfold bubble; rfl
+  | _ :: _ :: _, h => by simp at h
+
+theorem cswap_eq (p rest : List Nat) (x y : Nat) :
+    cswap p.length (p ++ x :: y :: rest) = p ++ (if x ≤ y then [x, y] else [y, x]) ++ rest := by
+  simp [cswap]
+
+theorem length_cswap (j : Nat) (l : List Nat) : (cswap j l).length = l.length := by
+  unfold cswap
+  split
+  · rename_i x y rest h
+    have hl := congrArg List.length (List.take_append_drop j l)
+    rw [h] at hl
+    split <;> simp at hl ⊢ <;> omega
+  · rfl
+
+theorem take_mid1 (p t : List Nat) (a : Nat) : (p ++ a :: t).take (p.length + 1) = p ++ [a] := by
+  induction p with
+  | nil => simp
+  | cons h p ih => simp [ih]
+
+theorem drop_mid1 (p t : List Nat) (a : Nat) : (p ++ a :: t).drop (p.length + 1) = t := by
+  induction p with
+  | nil => simp
+  | cons h p ih => simp [ih]
+
+theorem drop_mid2 (p rest : List Nat) (a b k : Nat) :
+    (p ++ a :: b :: rest).drop (p.length + 2 + k) = rest.drop k := by
+  induction p with
+  | nil => simp [Nat.add_comm 2 k]
+  | cons h p ih =>
+    have : (h :: p).length + 2 + k = (p.length + 2 + k) + 1 := by simp; omega
+    rw [this]; simp [ih]
+
+theorem step_core (p rest : List Nat) (x y k : Nat) :
+    finishPass (p.length + 2 + k) (p.length + 1) (cswap p.length (p ++ x :: y :: rest))
+      = finishPass (p.length + 2 + k) p.length (p ++ x :: y :: rest) := by
+  rw [cswap_eq]
+  unfold finishPass
+  have h1 : min (p.length + 1) (p.length + 2 + k) = p.length + 1 := by omega
+  have h0 : min p.length (p.length + 2 + k) = p.length := by omega
+  have e1 : p.length + 2 + k - (p.length + 1) = k + 1 := by omega
+  have e0 : p.length + 2 + k - p.length = k + 2 := by omega
+  simp only [h1, h0, e1, e0]
+  by_cases hxy : x ≤ y
+  · simp only [hxy, ite_true, List.append_assoc, List.cons_append, List.nil_append]
+    rw [take_mid1, drop_mid1, drop_mid2, List.take_left, List.drop_left]
+    simp [bubble, hxy]
+  · simp only [hxy, ite_false, List.append_assoc, List.cons_append, List.nil_append]
+    rw [take_mid1, drop_mid1, drop_mid2, drop_mid2, List.take_left, List.drop_left]
+    simp [bubble, hxy]
+
+/-- One compare-and-swap inside the pass does not change the result of finishing the pass. -/
+theorem finishPass_step (u j : Nat) (l : List Nat) (hj : j + 1 < u) :
+    finishPass u (j + 1) (cswap j l) = finishPass u j l := by
+  cases hd : l.drop j with
+  | cons x t =>
+    cases t with
+    | cons y rest =>
+      have hl : l = l.take j ++ x :: y :: rest := by rw [← hd, List.take_append_drop]
+      have hlen : (l.take j).length = j := by
+        have := congrArg List.length hl; simp at this ⊢; omega
+      have e := step_core (l.take j) rest x y (u - j - 2)
+      rw [hlen, ← hl, show j + 2 + (u - j - 2) = u by omega] at e
+      exact e
+    | nil =>
+      have hc : cswap j l = l := by unfold cswap; rw [hd]
+      have hlen : l.length ≤ j + 1 := by
+        have := congrArg List.length (List.take_append_drop j l); rw [hd] at this; simp at this; omega
+      rw [hc]; unfold finishPass
+      have h1 : min (j + 1) u = j + 1 := by omega
+      have h0 : min j u = j := by omega
+      have e : u - j = (u - j - 1) + 1 := by omega
+      simp only [h1, h0]
+      rw [List.drop_eq_nil_of_le (show l.length ≤ j + 1 by omega),
+        List.drop_eq_nil_of_le (show l.length ≤ u by omega), List.take_of_length_le hlen, hd, e]
+      simp only [List.take_succ_cons, List.take_nil, bubble_short [] (by simp),
+        bubble_short [x] (by simp), List.append_nil]
+      conv => lhs; rw [← List.take_append_drop j l, hd]
+  | nil =>
+    have hc : cswap j l = l := by unfold cswap; rw [hd]
+    have hlen : l.length ≤ j := by
+      have := congrArg List.length (List.take_append_drop j l); rw [hd] at this; simp at this; omega
+    rw [hc]; unfold finishPass
+    have h1 : min (j + 1) u = j + 1 := by omega
+    have h0 : min j u = j := by omega
+    simp only [h1, h0]
+    rw [List.drop_eq_nil_of_le (show l.length ≤ j + 1 by omega),
+      List.drop_eq_nil_of_le (show l.length ≤ u by omega), hd,
+      List.take_of_length_le (show l.length ≤ j + 1 by omega), List.take_of_length_le hlen]
+    simp
+
+/-- At the end of a pass (`u ≤ j + 1`) there is nothing left to do. -/
+theorem finishPass_end (u j : Nat) (l : List Nat) (h : u ≤ j + 1) : finishPass u j l = l := by
+  unfold finishPass
+  by_cases hju : u ≤ j
+  · have : min j u = u := by omega
+    simp [this, bubble_short [] (by simp)]
+  · have : min j u = j := by omega
+    simp only [this]
+    have e : u - j = 1 := by omega
+    rw [e, bubble_short _ (by simp; omega)]
+    have : l.drop u = (l.drop j).drop 1 := by rw [List.drop_drop]; congr 1; omega
+    rw [this, List.append_assoc, List.take_append_drop, List.take_append_drop]
+
+theorem finishPass_start (u : Nat) (l : List Nat) : finishPass u 0 l = bubblePrefix u l := by
+  simp [finishPass, bubblePrefix]
+
+theorem bsU_small (u : Nat) (l : List Nat) (h : u ≤ 1) : bsU u l = l := by
+  match u, h with
+  | 0, _ => rfl
+  | 1, _ => rfl
+
+theorem bsU_step (u : Nat) (l : List Nat) (h : 2 ≤ u) : bsU u l = bsU (u - 1) (bubblePrefix u l) := by
+  obtain ⟨v, rfl⟩ : ∃ v, u = v + 2 := ⟨u - 2, by omega⟩
+  rfl
+
+/-! ### Verified: one pass computes `bubble` -/
+
+@[reducible]
+def bubblePassMCV : Mapcode where
+  toMapCodeUnverified := bubblePassMC
+  f := bubble
+  σ | (j, l) => l.length - j
+  θ | (j, l) => finishPass l.length j l
+  σ_decreases
+    | (j, l), h => by
+      dsimp only [bubblePassMC] at h ⊢
+      by_cases hj : j + 1 < l.length
+      · simp only [hj, ite_true, length_cswap]; omega
+      · simp [hj] at h
+  θ_init l := by
+    show finishPass l.length 0 l = bubble l
+    simp [finishPass_start, bubblePrefix]
+  θ_preserved
+    | (j, l) => by
+      dsimp only [bubblePassMC]
+      split
+      · rename_i hj; simp only [length_cswap]; exact finishPass_step l.length j l hj
+      · rfl
+  θ_final
+    | (j, l), h => by
+      dsimp only [bubblePassMC] at h ⊢
+      split at h
+      · simp at h
+      · rename_i hj; exact finishPass_end l.length j l (by omega)
+
+def bubblePass (l : List Nat) : {a : List Nat // a = bubble l} := bubblePassMCV.runWithProof l
+
+#guard (bubblePass [5, 1, 4, 2, 8]).val = [1, 4, 2, 5, 8]
+
+/-! ### Verified: the full-state mapcode computes recursive bubble sort -/
+
+@[reducible]
+def bubbleSortMCV : Mapcode where
+  toMapCodeUnverified := bubbleSortMC
+  f l := bsU l.length l
+  -- bound function: comparisons left in this pass, plus a quadratic term in the passes left
+  σ | (u, j, _) => u * u + (u - j)
+  θ | (u, j, l) => if u ≤ 1 then l else bsU (u - 1) (finishPass u j l)
+  σ_decreases
+    | (u, j, l), h => by
+      dsimp only [bubbleSortMC] at h ⊢
+      by_cases hu : u ≤ 1
+      · simp [hu] at h
+      · by_cases hj : j + 1 < u
+        · simp only [hu, hj, ite_true, ite_false]; omega
+        · simp only [hu, hj, ite_false]
+          obtain ⟨v, rfl⟩ : ∃ v, u = v + 1 := ⟨u - 1, by omega⟩
+          have e : (v + 1) * (v + 1) = v * v + 2 * v + 1 := by
+            simp only [Nat.add_mul, Nat.mul_add, Nat.mul_one, Nat.one_mul]; omega
+          rw [e, Nat.add_sub_cancel]
+          generalize v * v = t
+          omega
+  θ_init l := by
+    show (if l.length ≤ 1 then l else bsU (l.length - 1) (finishPass l.length 0 l)) = bsU l.length l
+    split
+    · rw [bsU_small _ _ (by assumption)]
+    · rw [finishPass_start, bsU_step l.length l (by omega)]
+  θ_preserved
+    | (u, j, l) => by
+      dsimp only [bubbleSortMC]
+      by_cases hu : u ≤ 1
+      · simp [hu]
+      · simp only [hu, ite_false]
+        by_cases hj : j + 1 < u
+        · simp only [hj, ite_true, hu, ite_false]; rw [finishPass_step _ _ _ hj]
+        · simp only [hj, ite_false]
+          rw [finishPass_end u j l (by omega)]
+          by_cases hu2 : u - 1 ≤ 1
+          · simp only [hu2, ite_true]; rw [bsU_small _ _ hu2]
+          · simp only [hu2, ite_false]; rw [finishPass_start, bsU_step (u - 1) l (by omega)]
+  θ_final
+    | (u, j, l), h => by
+      dsimp only [bubbleSortMC] at h ⊢
+      by_cases hu : u ≤ 1
+      · simp [hu]
+      · simp only [hu, ite_false] at h ⊢
+        by_cases hj : j + 1 < u
+        · simp [hj] at h
+        · simp only [hj, ite_false] at h
+          simp at h; omega
+
+def bsortFull (l : List Nat) : {a : List Nat // a = bsU l.length l} := bubbleSortMCV.runWithProof l
+
+#eval (bsortFull [5, 1, 4, 2, 8]).val   -- [1, 2, 4, 5, 8]
+#guard (bsortFull [4, 3, 1, 2]).val = [1, 2, 3, 4]
+#print axioms bubbleSortMCV
+
+end Mapcode.BubbleFull

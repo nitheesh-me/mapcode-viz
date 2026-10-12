@@ -27,18 +27,23 @@ Examples (with $P = (1, 5, 8, 9)$):
 _primitives_: `max` and `sum`($+$) are strict, i.e. $bot + v = bot$ and $max$ is $bot$ as soon as
 one argument is $bot$.
 
-$
-  I = P : NN^m times n : NN quad quad X_n = [0..n] -> NN_bot quad quad A = NN \
-  rho(P, n) = {i -> bot | i in [0..n]} quad "(the prices are not needed to initialise)" \
-  F_P (x)_i = cases(
-    0 & "if " i = 0,
-    max_(1 <= j <= min(i, m)) (P_j + x_(i-j)) & "if " i > 0
-  ) \
-  pi_n (x) = x_n
-$
-
-Cell $i$ depends on the $min(i, m)$ cells to its left, so it becomes defined one step after
-cell $i - 1$: the table fills left to right and reaches its fixed point after $n + 1$ steps.
+#mc-spec(
+  state: [The state is a table $x$ indexed by rod length: cell $x_i$ holds the maximum revenue
+    $r_i$ for a rod of length $i$, or $bot$ while it is not yet known. The prices are not needed
+    to initialise it.],
+  I: $I = P : NN^m times n : NN$,
+  X: $X = X_n = [0..n] -> NN_bot$,
+  A: $A = NN$,
+  rho: $rho(P, n) = {i |-> bot | i in [0..n]}$,
+  F: $F = F_P, quad F_P (x)_i = cases(0 & "if " i = 0, max_(1 <= j <= min(i, m)) (P_j + x_(i-j)) & "if " i > 0)$,
+  pi: $pi = pi_n = x |-> x_n$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = r_i$,
+)
+Cell $i$ is defined only once the $min(i, m)$ cells to its left are, and then gets exactly $r_i$
+and never changes, so every step that changes the table defines a new cell ($sigma$ drops) and
+keeps $"Inv"$; the table fills left to right, and after $n + 1$ steps every cell is defined, so
+$pi_n (x) = r_n$.
 
 #let rod-mc(P, n) = {
   let m = P.len()

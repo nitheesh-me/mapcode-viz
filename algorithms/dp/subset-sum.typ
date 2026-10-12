@@ -32,21 +32,28 @@ and otherwise run subset sum with target $T = Sigma slash 2$.
 
 _primitives_: `or` is strict, i.e. $bot or b = b or bot = bot$; `leq`($<=$).
 
-$
-  I = NN^* times NN quad quad X_(S,T) = [0..m] times [0..T] -> BB_bot quad quad A = BB
-  quad quad "where" m = |S| \
-  rho(S, T) = {(i, j) -> bot | i in [0..m], j in [0..T]} \
-  F_S (x)_(i,j) = cases(
+#mc-spec(
+  state: [With $m = |S|$, the state is a table $x$ indexed by an item count and a partial target;
+    cell $(i, j)$ records whether some subset of the first $i$ items sums to $j$ once it is
+    known, and is $bot$ before that.],
+  I: $I = NN^* times NN$,
+  X: $X = X_(S,T) = [0..m] times [0..T] -> BB_bot$,
+  A: $A = BB$,
+  rho: $rho(S, T) = {(i, j) |-> bot}$,
+  F: $F = F_S, quad F_S (x)_(i,j) = cases(
     "true" & "if " j = 0,
     "false" & "if " i = 0 and j > 0,
     x_(i-1,j) & "if " s_i > j,
     x_(i-1,j) or x_(i-1,j - s_i) & "otherwise"
-  ) \
-  pi_(S,T)(x) = x_(m,T)
-$
-
-Row $i$ depends only on row $i-1$ (and column $0$ is always true), so each step of $F$
-completes one more row and the fixed point is reached after $m + 1$ steps.
+  )$,
+  pi: $pi = pi_(S,T) = x |-> x_(m,T)$,
+  sigma: $sigma(x) = |{(i, j) | x_(i,j) = bot}|$,
+  inv: $"Inv"(x) <=> forall (i, j) . x_(i,j) != bot => x_(i,j) = D(i, j)$,
+)
+Row $i$ is computed only from defined cells of row $i - 1$ (column $0$ is always true), which by
+$"Inv"$ hold their final $D$ values, so defined cells never change and every step that changes
+$x$ completes one more row and lowers $sigma$; after $m + 1$ steps every cell is defined and
+$pi_(S,T)(x) = D(m, T)$.
 
 #let subset-sum-mc(inst) = {
   let (S, T) = inst
@@ -78,8 +85,8 @@ completes one more row and the fixed point is reached after $m + 1$ steps.
       width: 1.6em,
     ),
     A_h: show-val,
-    F_name: [$F_S$],
-    pi_name: [$mpi_(S,T)$],
+    F_name: [$F_((#S.map(str).join(", ")))$],
+    pi_name: [$mpi_(((#S.map(str).join(", ")), #T))$],
     group-size: 2,
     spacing: (8mm, 8mm),
     node-shape: rect,

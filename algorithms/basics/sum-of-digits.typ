@@ -25,22 +25,21 @@ Examples:
 
 _primitives_: integer division `div`, remainder `mod` and `add`($+$).
 
-The state is a pair $(m, s)$: the digits $m$ still to be read and the running sum $s$ of the
-digits already read.
-
-$
-  I = NN quad quad X = NN times NN quad quad A = NN \
-  rho(n) = (n, 0) \
-  F(m, s) = cases(
-    (m "div" 10, s + m mod 10) & "if " m > 0,
-    (m, s) & "if " m = 0
-  ) \
-  pi(m, s) = s
-$
-
-Each step moves the last digit of $m$ into $s$, so $s + "digitsum"(m)$ stays equal to
-$"digitsum"(n)$. Once $m = 0$ the state is a fixed point and $s$ is the answer; this takes
-one step per digit.
+#mc-spec(
+  state: [The state $(m, s)$ holds the number $m$ whose digits are still to be read and the
+    running sum $s$ of the digits already read; each step moves the last digit of $m$ into $s$.],
+  I: $I = NN$,
+  X: $X = NN times NN$,
+  A: $A = NN$,
+  rho: $rho(n) = (n, 0)$,
+  F: $F(m, s) = cases((m "div" 10, s + m mod 10) & "if " m > 0, (m, s) & "if " m = 0)$,
+  pi: $pi(m, s) = s$,
+  sigma: $sigma(m, s) = m$,
+  theta: $theta(m, s) = s + "digitsum"(m)$,
+)
+For $m > 0$ we have $m "div" 10 < m$, so $sigma$ strictly decreases; $theta(rho(n)) =
+"digitsum"(n)$, the defining equation $"digitsum"(m) = m mod 10 + "digitsum"(m "div" 10)$ makes
+$theta$ unchanged by $F$, and once $m = 0$ (one step per digit) $theta(0, s) = s = pi(0, s)$.
 
 #let digitsum-mc(n) = {
   let rho = n => (n, 0)

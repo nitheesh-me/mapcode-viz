@@ -19,18 +19,22 @@ Examples:
 
 *As mapcode:*
 
-The two functions are folded into one table whose cell $i$ holds the pair
-$("even"(i), "odd"(i))$; the swap is strict.
-
-$
-  I = NN quad quad X_n = [0..n] -> (BB times BB)_bot quad quad A = BB times BB \
-  rho(n) = {i -> bot | i in [0..n]} \
-  F(x)_i = cases(
-    ("T", "F") & "if " i = 0,
-    (o, e) "where" (e, o) = x_(i-1) & "if " i >= 1
-  ) \
-  pi_n (x) = x_n
-$
+#mc-spec(
+  state: [The two functions are folded into one table: for a fixed $n$, cell $i$ of $x$ holds
+    the pair $("even"(i), "odd"(i))$ once it is defined and $bot$ before that.],
+  I: $I = NN$,
+  X: $X = X_n = [0..n] -> (BB times BB)_bot$,
+  A: $A = BB times BB$,
+  rho: $rho(n) = {i |-> bot | i in [0..n]}$,
+  F: $F(x)_i = cases(("T", "F") & "if " i = 0, "swap"(x_(i-1)) & "if " i >= 1)$,
+  pi: $pi = pi_n = x |-> x_n$,
+  sigma: $sigma(x) = |{i | x_i = bot}|$,
+  inv: $"Inv"(x) <=> forall i . x_i != bot => x_i = ("even"(i), "odd"(i))$,
+)
+where $"swap"(e, o) = (o, e)$ is strict. Cell $i$ becomes defined one step after cell $i-1$
+and never changes afterwards, so every non-fixed step defines a new cell and $sigma$ drops by
+one; by the mutual recursion $"swap"$ maps the pair for $i-1$ to the pair for $i$, so $"Inv"$
+is preserved, and at the fixed point ($sigma = 0$) $pi_n (x) = ("even"(n), "odd"(n))$.
 
 #let parity-mc(n) = {
   let rho = n => range(n + 1).map(_ => none)

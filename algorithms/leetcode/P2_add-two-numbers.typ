@@ -31,17 +31,23 @@ Constraints: each list has $1$ to $100$ nodes, and every digit is in $[0..9]$.
 
 _primitives_: `add`($+$), `mod` and `div` by $10$ are strict, i.e. they return $bot$ if any argument is $bot$.
 
-Cell $k$ of the state holds the pair (digit, carry-out) of column $k$.
-
-$
-  I = [0..9]^+ times [0..9]^+ quad quad X_(a,b) = [0..L) -> ([0..9] times {0, 1})_bot quad quad A = [0..9]^+ \
-  rho(a, b) = {k -> bot | k in [0..L)} \
-  F_(a,b) (x)_k = (s mod 10, s "div" 10) quad "where" s = a_k + b_k + cases(0 & "if " k = 0, c_(k-1) & "otherwise") quad "and" x_(k-1) = (d_(k-1), c_(k-1)) \
-  pi(x) = [d_0, dots, d_(L-1)] + ([1] "if " c_(L-1) = 1 "else" [])
-$
-
-Column $k$ needs the carry of column $k-1$, so the carry ripples one column per step and the fixed
-point is reached after $L$ steps.
+#mc-spec(
+  state: [Cell $x_k$ of the state holds the pair $(d_k, c_k)$ of the sum digit and the carry-out
+    of column $k$, or $bot$ while the carry into column $k$ is not yet known.],
+  I: $I = [0..9]^+ times [0..9]^+$,
+  X: $X = X_(a,b) = [0..L) -> ([0..9] times {0, 1})_bot$,
+  A: $A = [0..9]^+$,
+  rho: $rho(a, b) = {k |-> bot}$,
+  F: $F = F_(a,b), quad F_(a,b) (x)_k = (s_k mod 10, s_k "div" 10)$,
+  pi: $pi(x) = [d_0, dots, d_(L-1)] + [1]^(c_(L-1))$,
+  sigma: $sigma(x) = |{k | x_k = bot}|$,
+  inv: $"Inv"(x) <=> forall k . x_k != bot => x_k = (d_k, c_k)$,
+)
+where $s_k = a_k + b_k + c_(k-1)$ with $c_(-1) = 0$ and $x_(k-1) = (d_(k-1), c_(k-1))$, $[1]^c$ is the list of $c$ ones, and $d_k$,
+$c_k$ on the left of the invariant are those of the formal definition. By strictness column $k$
+becomes defined only once column $k - 1$ is, and then with exactly $(d_k, c_k)$, so defined cells
+never change and every non-fixed step defines a new column, decreasing $sigma$; the carry ripples
+one column per step, and after $L$ steps all columns are defined and $pi(x) = "add"(a, b)$.
 
 #let add-two-mc(inst) = {
   let (l1, l2) = inst
@@ -88,6 +94,7 @@ point is reached after $L$ steps.
     I_h: I_h,
     X_h: X_h,
     A_h: a => vec-view(a, none),
+    F_name: [$F_(a,b)$],
     pi_name: [$mpi$],
     group-size: 3,
     spacing: (8mm, 10mm),
